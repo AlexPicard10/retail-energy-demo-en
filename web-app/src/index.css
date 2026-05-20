@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background:
+    radial-gradient(1200px 700px at 80% -10%, rgba(0,170,255,0.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 20%, rgba(229,0,91,0.06), transparent 60%),
+    linear-gradient(180deg, #F9FBFD 0%, #EFF4FA 100%);
+  color: #0A1A2F;
+}
+
+/* ---------- Components ---------- */
+@layer components {
+  .container-pitch {
+    @apply mx-auto max-w-7xl px-6 lg:px-10;
+  }
+  .kicker {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-engie-deep/70;
+  }
+  .card {
+    @apply relative rounded-2xl border border-white/70 bg-white/75 backdrop-blur-xl;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.7) inset,
+      0 1px 2px rgba(0, 30, 98, 0.04),
+      0 12px 30px -12px rgba(0, 30, 98, 0.18);
+  }
+  .card-strong {
+    @apply relative rounded-2xl border border-white/90 bg-white;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 1) inset,
+      0 2px 4px rgba(0, 30, 98, 0.05),
+      0 24px 60px -20px rgba(0, 30, 98, 0.22);
+  }
+  .card-dark {
+    @apply relative rounded-2xl border border-white/10 text-white;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 60%),
+      linear-gradient(180deg, #001A4F 0%, #000B2A 100%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.08) inset,
+      0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-engie-blue/20 bg-engie-blue/5 px-2.5 py-1 text-[11px] font-medium text-engie-deep;
+  }
+  .pill-magenta {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-engie-magenta/30 bg-engie-magenta/5 px-2.5 py-1 text-[11px] font-medium text-engie-magenta;
+  }
+  .pill-green {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-engie-green/30 bg-engie-green/5 px-2.5 py-1 text-[11px] font-medium text-engie-green;
+  }
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-full bg-engie-deep px-5 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:bg-engie-blue hover:shadow-[0_0_60px_-5px_rgba(0,170,255,0.6)];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 rounded-full border border-engie-deep/20 bg-white/60 px-5 py-2.5 text-sm font-semibold text-engie-deep transition hover:border-engie-deep/40 hover:bg-white;
+  }
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #00AAFF 0%, #0033A0 65%, #001E62 100%);
+  }
+  .text-gradient-magenta {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #E5005B 0%, #FF7A59 100%);
+  }
+  .text-gradient-green {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #00C389 0%, #00AAFF 100%);
+  }
+  .grid-pattern {
+    background-image:
+      linear-gradient(rgba(0,30,98,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,30,98,0.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .noise {
+    background-image: radial-gradient(rgba(0,30,98,0.04) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+  .animated-underline {
+    @apply relative inline-block;
+  }
+  .animated-underline::after {
+    content: '';
+    @apply absolute -bottom-1 left-0 h-[2px] w-0 bg-engie-blue transition-all duration-300;
+  }
+  .animated-underline:hover::after {
+    @apply w-full;
+  }
+}
+
+/* ---------- Utilities ---------- */
+@layer utilities {
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
+            mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+}
+
+/* Scroll-anchor offset for sticky nav (used inside a slide if it scrolls internally) */
+section[id] { scroll-margin-top: 88px; }
+
+/* ---------- Slide-deck mode ----------
+ * App.tsx renders one section at a time inside a fixed-height main. The body
+ * itself never scrolls — each slide gets its own internal overflow if its
+ * content exceeds the viewport. We disable browser smooth-scrolling that
+ * would fight the AnimatePresence transition.
+ */
+html, body { overflow: hidden; }
+html { scroll-behavior: auto; }
