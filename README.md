@@ -2,7 +2,7 @@
 
 A complete, end-to-end **45-minute Databricks workshop** built on synthetic French retail-energy data. Clone the repo, run one Python script against your own Databricks workspace, then walk a panel through a flow that takes raw smart-meter files all the way to an ML-powered AI/BI dashboard — combining the **visual canvas of Visual Data Prep** with the **generative power of Genie Code**.
 
-> **Outcome promise:** in 40 minutes, you go from 5 raw files (CSV + nested JSON) to a named, quantified upsell list (the "Night Owl" customers) — built with **Visual Data Prep**, **MLflow + Unity Catalog**, **Lakeflow Declarative Pipelines**, **AI/BI Dashboards**, and **Genie**.
+> **Outcome promise:** in 40 minutes, you go from 5 raw files (CSV + nested JSON) to a named, quantified retention list — the ~80 **Peak Heavy** customers stuck on a flat tariff who are already disputing their bills (~€680k of annual revenue at risk) — built with **Visual Data Prep**, **MLflow + Unity Catalog**, **Lakeflow Declarative Pipelines**, **AI/BI Dashboards**, and **Genie**.
 
 ---
 
@@ -18,11 +18,11 @@ flowchart LR
       E[customer_interactions.json]
     end
 
-    RAW --> VDP["Visual Data Prep<br/>Bronze + Silver + Gold<br/>built visually<br/>+ Custom SQL escape hatch"]
-    VDP --> GOLD["Gold (UC tables)<br/>customer_energy_profile<br/>revenue_by_plan<br/>regional_consumption"]
-    GOLD --> ML["Genie Code<br/>K-Means (k=5)<br/>MLflow + UC Models"]
+    RAW --> VDP["Visual Data Prep<br/>NL prompt + Unique + ai_classify<br/>built visually"]
+    VDP --> GOLD["Gold (UC tables)<br/>customer_energy_profile<br/>customer_topics"]
+    GOLD --> ML["Genie Code<br/>K-Means (k=3)<br/>MLflow + UC Models"]
     ML --> PIPELINE["Genie Code<br/>Lakeflow Declarative Pipeline<br/>applies the model"]
-    PIPELINE --> CLASSIF["gold_customer_classifications<br/>5 named consumption profiles"]
+    PIPELINE --> CLASSIF["gold_customer_classifications<br/>3 named consumption profiles"]
     GOLD --> DASH["AI/BI Dashboard<br/>(image → dashboard)"]
     CLASSIF --> DASH
     GOLD --> GENIE["Genie<br/>Natural language Q&A"]
@@ -86,24 +86,23 @@ The full script lives in **[01_Scenario/ENERGY_RETAIL_DEMO_GUIDE_EN.md](01_Scena
 
 | # | Pillar | Time | Tool | What lands |
 |---|--------|------|------|-----------|
-| Intro | — | 3 min | — | The "villain" hook + why the next 40 minutes matter |
-| 1 | Data Engineering | 4 min | **Visual Data Prep** | Explore the 5 raw files on the canvas — plant the anomaly mystery |
-| 2 | Data Engineering | 4 min | **Visual Data Prep** | Bronze flow with built-in data-quality rules |
-| 3 | Data Engineering | 4 min | **Visual Data Prep** | Silver — visual joins + Custom SQL node for nested JSON |
-| 4 | Data Engineering | 3 min | **Visual Data Prep** | Gold business marts (customer profile, revenue, regional) |
-| 5 | Data Science | 7 min | **Genie Code** | Train K-Means (k=5) in a notebook, register in Unity Catalog |
-| 6 | Data Science | 5 min | **Genie Code** | Build a *new* Lakeflow pipeline that applies the model |
-| 7 | Analytics | 5 min | **Genie Code** | **Image → dashboard** in 30 seconds (AI/BI from a hand-drawn mockup) |
-| 8 | Analytics | 5 min | **Genie** | Q&A leading with the Night Owl upsell list, ends with anomaly hunting |
-| 9 | Analytics | 3 min | **Genie Code** | Enrich the dashboard with the 5 ML profiles |
+| Intro | — | 3 min | — | The retention hook + why the next 40 minutes matter |
+| 1 | Data Engineering | 3 min | **Visual Data Prep** | Add 5 Source nodes — preview the files, plant the anomaly aside |
+| 2 | Data Engineering | 7 min | **Visual Data Prep** | One NL prompt → `gold_customer_energy_profile` (6 features + tariff) |
+| 3 | Data Engineering | 5 min | **Visual Data Prep** | Unique → `ai_classify` → join back → `gold_customer_topics` |
+| 4 | Data Science | 7 min | **Genie Code** | Train K-Means (k=3) in a notebook, register in Unity Catalog |
+| 5 | Data Science | 5 min | **Genie Code** | Build a *new* Lakeflow pipeline that applies the model |
+| 6 | Analytics | 5 min | **Genie** | **Image → dashboard** in 30 seconds (AI/BI from a hand-drawn mockup) |
+| 7 | Analytics | 5 min | **Genie** | Q&A leading with the Peak Heavy at-risk retention list |
+| 8 | Analytics | 3 min | **Genie** | *(Optional)* Enrich the dashboard with the 3 ML profiles |
 
-Visual aids live in [03_Visuels/](03_Visuels/) — keep `Retails_Energy_Dashboard.png` handy as the input mockup for prompt 7.
+Visual aids live in [03_Visuels/](03_Visuels/) — keep `Retails_Energy_Dashboard.png` handy as the input mockup for prompt 6.
 
 ---
 
 ## Optional — run the presentation web-app
 
-A standalone React/Vite slide deck companion designed to run on your laptop next to the live workspace. It walks an audience through the architecture, the 8 prompts (with copy buttons), the 5 customer profiles (animated K-Means reveal), and a Genie chat preview.
+A standalone React/Vite slide deck companion designed to run on your laptop next to the live workspace. It walks an audience through the architecture, the 7 steps (with copy buttons), the 3 customer profiles (animated K-Means reveal), and a Genie chat preview.
 
 ```bash
 cd web-app

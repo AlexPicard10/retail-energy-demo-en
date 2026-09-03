@@ -5,13 +5,15 @@
 > **Volume**: `/Volumes/<YOUR_CATALOG>/energy_retail_demo/raw_data/`
 > **Setup**: see `02_Setup/energy_retail_demo_setup.py`
 
+This guide is the presenter script. It mirrors the 7 steps in the web-app deck (`web-app/`) one-for-one — drive the two canvas steps live in Visual Data Prep, and copy each Genie Code / Genie prompt in order.
+
 ## Timeline overview
 
 | Time | Pillar | Goal |
 |------|--------|------|
 | 0-3 min | Intro | Context + open the workspace |
-| 3-18 min | **Data Engineering** | **Visual Data Prep**: build Bronze/Silver/Gold visually |
-| 18-30 min | **Data Science** | Genie Code: train K-Means, then build a Lakeflow pipeline that applies the model |
+| 3-18 min | **Data Engineering** | **Visual Data Prep**: build the customer profile + AI-classify interactions |
+| 18-30 min | **Data Science** | Genie Code: train K-Means (k=3), then a Lakeflow pipeline that applies the model |
 | 30-43 min | **Analytics** | Image-to-dashboard + Genie exploration |
 | 43-45 min | Q&A |
 
@@ -21,7 +23,7 @@
 
 **The business problem (set this up before any prompt):**
 
-> Engie's B2C retail team is losing **~8% of off-peak-heavy customers per quarter** to competitors with sharper night tariffs. They suspect the loss is hiding in their own data — but the data lives in **5 raw files no analyst has had the time to join**. In 40 minutes, we'll go from those 5 files to a **named, quantified upsell list** the retention team can act on Monday morning.
+> Engie's B2C retail team has a retention problem hiding in its own data. The highest-revenue customers — the **Peak Heavy** segment — are the ones most exposed: many sit on a **flat tariff** (no off-peak advantage) *and* are already calling in with **billing disputes**. That combination is a churn signal the team can't see today, because it lives across **5 raw files no analyst has had the time to join**. In 40 minutes we'll go from those 5 files to a **named, quantified retention call list** — roughly **80 high-value at-risk customers, ~€680k of annual revenue at stake** — that the team can work Monday morning.
 
 **Talking points:**
 - Raw data from a French electricity retailer:
@@ -31,259 +33,281 @@
   * tariff plan definitions (CSV)
   * customer service interactions (JSON)
 
-- Consumption data contains daily, weekly, and hourly readings (typical of Linky smart meter exports combined with legacy meter reads)
-- Interactions data is JSON nested 3 levels deep
+- Consumption is one daily kWh reading per customer for a full year; the peak/off-peak signal lives in the billing file.
+- Interactions data is JSON nested 3 levels deep, with a short free-text `raw_message`.
 
-
-#### ==> We'll use **Visual Data Prep** to build the medallion pipeline visually, then **Genie Code** to train the model, apply it through a declarative pipeline, and author the executive dashboard — ending with the **Night Owl upsell list**.
+#### ==> We'll use **Visual Data Prep** to build the customer profile and AI-classify the interactions, then **Genie Code** to train the model, apply it through a declarative pipeline, and author the executive dashboard — ending with the **Peak Heavy at-risk call list**.
 
 ---
 
 ## Pillar 1 — Data Engineering with Visual Data Prep
 
-> The whole DE pillar is built in **Visual Data Prep** — Databricks' no-code visual flow editor. No prompts to copy-paste here: drive the UI live in front of the audience. Each step below maps to a flow you'll save and publish into `<YOUR_CATALOG>.energy_retail_demo`.
+> Two steps on the canvas. Step 2 is one natural-language prompt; Step 3 is a short manual flow with the AI operator. Each step publishes into `<YOUR_CATALOG>.energy_retail_demo`.
 
-### Step 1 — Explore the raw files (Visual Data Prep canvas)
+### Step 1 — Add the source files to the canvas
 
-1. Open **Visual Data Prep** in the Databricks workspace and create a new flow named `energy_retail_visual_prep`.
-2. Add a **Source** node pointing at `/Volumes/<YOUR_CATALOG>/energy_retail_demo/raw_data/`.
-3. Use the data preview / profiling pane to inspect each file: schemas, row counts, distinct values, null counts.
+1. Open **Visual Data Prep** and create a new flow named `energy_retail_visual_prep`.
+2. For each raw file in `/Volumes/<YOUR_CATALOG>/energy_retail_demo/raw_data/`, drop a **Source** node: `raw_customers.csv`, `raw_consumption.csv`, `raw_billing.csv`, `raw_tariff_plans.csv`, `raw_customer_interactions.json`.
+3. Let schema inference run and preview a few rows on each Source so the team sees the data — including the nested JSON of the interactions file.
 
 Talking points:
-- Mix of CSV and JSON formats — VDP auto-infers schemas and lets you eyeball distributions without writing a single SELECT.
-- Consumption data contains `daily`, `weekly`, and `hourly` reading types with peak / off-peak indicators.
-- Nested JSON structure (3 levels: interaction, sentiment, details.resolution) — visible right in the preview.
-- Tariff plans with peak / off-peak rate structure.
-- **Plant the seed**: *"You'll notice a small fraction of customers show flat or spike patterns inconsistent with their region — the customers table even carries an `anomaly_flag`. Don't fix it now — flag it. We'll come back to it once we have the Gold profile and the K-Means clusters: that's how we'll prove the model is doing real work, not just textbook clustering."*
+- Mix of CSV and JSON — VDP auto-infers schemas and lets you eyeball distributions without writing a single SELECT.
+- The interactions file is nested 3 levels deep (interaction, sentiment, details.resolution) — visible right in the preview, with the free-text `raw_message` at the root.
+- **Plant the seed**: *"A small fraction of customers show flat or spike patterns inconsistent with their region — the customers table even carries an `anomaly_flag`. Don't fix it now — flag it. Today's target is the retention list; the anomalies are a follow-up field-service play."*
 
 ---
 
-### Step 2 — Build the Bronze flow (visual ingestion + quality rules)
+### Step 2 — Build the customer energy profile (one NL prompt → one Gold table)
 
-1. Add 5 Source nodes (one per file): `raw_customers.csv`, `raw_consumption.csv`, `raw_billing.csv`, `raw_tariff_plans.csv`, `raw_customer_interactions.json`.
-2. On each Source node, apply built-in **data-quality expectations** (drop-on-fail):
-   - `customer_id` is never null (customers, consumption, billing, interactions)
-   - `kwh_consumed > 0` (consumption)
-   - `amount_eur > 0` (billing)
-   - valid email format — `email LIKE '%@%'` (customers)
-   - `peak_rate_eur_kwh > off_peak_rate_eur_kwh` (tariff consistency)
-3. Configure each output to publish into `<YOUR_CATALOG>.energy_retail_demo` as `bronze_customers`, `bronze_consumption`, `bronze_billing`, `bronze_tariff_plans`, `bronze_customer_interactions`.
+Use Visual Data Prep's natural-language prompt. This is the feature mart that feeds the model.
+
+```text
+Build me one customer table I can use to find upsell opportunities — one row per customer, bringing together their consumption habits, billing behaviour, and current tariff from the four sources on the canvas.
+
+For each customer I need:
+
+  • Who they are — region, plus first and last name, so the output doubles as a ready-to-use call list.
+
+  • Consumption habits — their average daily kWh, the ratio of weekend to weekday consumption, the ratio of winter to summer consumption, and how their monthly consumption trended over the year.
+
+  • Billing behaviour — what share of their kWh falls on peak hours, and how reliably they pay (paid bills vs total bills).
+
+  • Current tariff — plan id, plan name, plan type, peak and off-peak rates, plus a flag is_flat_tariff that is true when the peak and off-peak rates are essentially the same.
+
+Build it as a readable Visual Data Prep flow using native operators rather than a single SQL block.
+
+Before publishing, double-check that the table has every customer in it and that nobody ends up with a zero average daily kWh — if some do, a join or filter is dropping their consumption rows.
+
+Publish to `<YOUR_CATALOG>.energy_retail_demo.gold_customer_energy_profile`. That's the only output of this flow.
+```
 
 Talking points:
-- Quality rules are **built-in** — no `@dp.expect_or_drop()` to write, no Python imports.
-- Auto-infer + click-to-cast for column types — CSV and JSON handled side-by-side.
-- Quality metrics are visible per node in the canvas (drop counts, distribution drift).
-- Serverless materialization — no cluster to manage, lineage already in Unity Catalog.
+- One business prompt → VDP generates a readable Source → Filter → Join → Aggregate DAG on the canvas (not a single opaque SQL block).
+- The `is_flat_tariff` flag is the hinge of the whole story — it's what separates a Peak Heavy customer who's fine from one who's overpaying.
+- The "every customer, no zero avg" guardrail is deliberate: it stops a bad join silently dropping customers and blanking `avg_daily_kwh`.
+- One output: `gold_customer_energy_profile` — one row per customer, 6 ML features + tariff context. This is exactly the model's input in Pillar 2.
 
 ---
 
-### Step 3 — Build the Silver flow (cleaning, FK validation, JSON flatten)
+### Step 3 — AI-classify customer interactions (Unique → ai_classify → join back)
 
-Wire downstream of the Bronze nodes — all visual, with one Custom SQL escape hatch for the 3-level JSON:
+The interactions file has 30,000 short SMS-style messages. Classifying every row would be 30,000 LLM calls — but the templated messages collapse to ~80 unique strings, so we classify the **distinct** set and join the topic back.
 
-- `silver_tariff_plans`: **Filter** node → rates positive, `standing_charge > 0`, `green_energy_pct` between 0 and 100.
-- `silver_customers`: **Window/Deduplicate** node on `customer_id` (keep most recent `signup_date`) → **Join** with `silver_tariff_plans` for FK validation → **Derive** node to normalize region names.
-- `silver_consumption`: **Cast** node (timestamp), **Filter** (`kwh_consumed > 0`), **Join** with `silver_customers` (FK), **Derive** node for `reading_date`, `reading_hour`, `is_weekend`.
-- `silver_billing`: **Filter** (`amount_eur > 0`, `kwh_billed > 0`), **Cast** `billing_period` as date, **Join** with `silver_customers` (FK), **Derive** node for tariff amount consistency.
-- `silver_customer_interactions`: drop in a **Custom SQL** node — VDP's escape hatch for nested JSON — with `LATERAL VIEW EXPLODE`:
+1. On the `raw_customer_interactions` Source node, drop a **Unique** operator and set its key to **Selected columns → `raw_message`**. The SMS-style templates collapse 30 000 rows to ~80 unique messages.
+2. Drop an **AI** operator after the Unique operator. Configure: function `ai_classify`, input column `raw_message`, output column `topic`. Candidate labels:
 
-  ```sql
-  SELECT
-    interaction_id, customer_id,
-    interaction.type AS interaction_type,
-    interaction.priority AS priority,
-    interaction.category AS category,
-    sentiment.score AS sentiment_score,
-    sentiment.label AS sentiment_label,
-    keyword,
-    raw_message,
-    details.resolution.status AS resolution_status,
-    details.resolution.action AS resolution_action,
-    details.resolution.resolution_time_hours,
-    details.metadata.device,
-    details.metadata.browser
-  FROM bronze_customer_interactions
-  LATERAL VIEW EXPLODE(sentiment.keywords) kw AS keyword
-  ```
+   ```text
+   billing dispute, service outage, tariff inquiry, meter issue, general feedback
+   ```
 
-Publish all 5 outputs as `silver_*` tables.
+3. Use Visual Data Prep's NL prompt to wire the topics back to every customer:
 
-Talking points:
-- The visual canvas handles **80%** of the work (dedupe, joins, casts, filters) with zero code.
-- The Custom SQL node is the deliberate **20% escape hatch** — same flow, same lineage, you just write SQL when the shape is exotic.
-- Foreign-key validation through visual Joins is more legible than a stack of `@dp.expect()` rules.
-- The Bronze → Silver DAG appears in the canvas — same lineage as a Lakeflow pipeline, exposed visually.
+   ```text
+   Goal
+     One row per customer with their last message and its classified topic.
 
----
+   How
+     • For each customer, keep only their most recent interaction.
+     • Join the AI step's output on the message text to attach the topic.
 
-### Step 4 — Build the Gold flow (business aggregates + features)
+   Output schema
+     • customer_id
+     • raw_message   (the customer's last message)
+     • topic         (clean string, e.g. "billing dispute")
 
-Three outputs, all wired off the Silver nodes:
+   Important
+     The topic column must be the plain text label only — e.g. "billing dispute".
+   ```
 
-**`gold_customer_energy_profile`** — the customer feature mart that feeds the model. Use a mix of **Group-By** nodes and one **Custom SQL** node for the linear-regression slope:
-- `avg_daily_kwh`, `total_annual_kwh` (Group-By on `silver_consumption`)
-- `peak_consumption_pct` (Custom SQL — percentage of hourly readings in peak windows)
-- `winter_avg_daily_kwh` (Nov-Feb), `summer_avg_daily_kwh` (Jun-Aug), `seasonal_ratio = winter/summer`
-- `weekday_avg_daily_kwh`, `weekend_avg_daily_kwh`, `weekend_ratio`
-- `consumption_trend` — Custom SQL with `regr_slope(monthly_kwh, month_index)` over the last 12 months
-- `total_billed_eur`, `avg_monthly_bill_eur`, `overdue_bill_count`, `payment_reliability_pct`
-- `interaction_count`, `complaint_count`, `avg_sentiment_score` (joined from `silver_customer_interactions`)
-- Final **Join** node merges everything onto `silver_customers`.
-
-**`gold_revenue_by_plan`** — Group-By on `silver_billing` × `silver_tariff_plans` by plan and month: `total_revenue_eur`, `customer_count`, `avg_revenue_per_customer`, `total_kwh_sold`, `avg_kwh_per_customer`.
-
-**`gold_regional_consumption`** — Group-By on `silver_consumption` × `silver_customers` by region and month: `total_kwh`, `avg_kwh_per_customer`, `customer_count`, `peak_vs_offpeak_ratio`.
-
-Publish the flow → serverless materialization → all three Gold tables land in `<YOUR_CATALOG>.energy_retail_demo`.
+4. End with an **Output** node — write one row per customer to `<YOUR_CATALOG>.energy_retail_demo.gold_customer_topics`.
 
 Talking points:
-- Full medallion architecture **as a visual flow** — analysts can read and edit this without learning Python.
-- Custom SQL nodes are isolated to the genuinely-hard bits (slope, percentage windows) — everything else is drag-and-drop.
-- Row counts and quality metrics on every node — easier to debug than scrolling through a notebook.
-- The customer feature mart (`gold_customer_energy_profile`) is exactly the input the K-Means model needs in the next pillar.
-- "From raw CSV/JSON files to business-ready Gold tables — without writing a pipeline by hand."
+- The **Unique** operator is a first-class dedup node — no Aggregate/Group-By workaround needed. Set the key to `raw_message` and it keeps one row per distinct message.
+- `ai_classify` runs on the built-in Mosaic AI endpoint against the ~80 distinct messages, then the join fans the topic back out — **~350× fewer LLM calls** than classifying all 30,000 rows. Seconds instead of minutes.
+- Output `gold_customer_topics` — one row per customer with their last-message topic. Joined with the profile + the ML classification, it's the third leg of the at-risk signal (profile + tariff + topic).
 
 ---
 
 ## Pillar 2 — Data Science: Customer classification by consumption profile
 
-### Prompt 5: Train a consumption classification model
+### Prompt 4: Train a K-Means consumption classifier (k=3)
 
 ```text
-Create a SEPARATE, standalone python script (do NOT add this code to the existing Spark Declarative Pipeline — model training is not a pipeline transformation). From the table `gold_customer_energy_profile`, build a customer classification model based on consumption profile:
+Create a new notebook for this step (separate from any previous work — keep the training isolated and easy to re-run).
 
-- Features: `avg_daily_kwh`, `peak_consumption_pct`, `seasonal_ratio`, `weekend_ratio`, `consumption_trend`, `payment_reliability_pct`
-- Standardize all features with StandardScaler
-- Use K-Means clustering with k=5
-- Track the experiment with MLflow: log parameters (k, features used, scaler type), metrics (silhouette score, inertia), and visualizations: centroid heatmap, per-cluster feature distribution boxplots, 2D PCA projection colored by cluster
-- After clustering, label each cluster according to its centroid characteristics:
-  - high peak_consumption_pct → "Peak Heavy"
-  - low peak_consumption_pct (heavy off-peak consumption) → "Night Owl"
-  - low seasonal_ratio (year-round stable consumption) + moderate avg_daily_kwh → "Steady Consumer"
-  - high seasonal_ratio (large winter/summer gap) → "Seasonal Spiker"
-  - low avg_daily_kwh → "Green Saver"
-- Register the model (KMeans + StandardScaler pipeline) in Unity Catalog under the name `energy_retail_demo.consumption_classifier`
+Train a K-Means consumption classifier with k=3 to group our customers into 3 distinct consumption profiles.
+
+Training source:
+`<YOUR_CATALOG>.energy_retail_demo.gold_customer_energy_profile`
+
+It also carries tariff and topic columns — ignore those, they're for the analysis layer. Cluster only on these 6 consumption features:
+  • avg_daily_kwh
+  • peak_consumption_pct
+  • weekend_ratio
+  • seasonal_ratio
+  • consumption_trend
+  • payment_reliability_pct
+
+Runtime: Serverless notebook — pull the ~10 000 rows into pandas, scale the features, and use scikit-learn. Register the model to Unity Catalog using its 3-part name (catalog.schema.model) — UC is the default registry on current runtimes.
+
+Pipeline: StandardScaler + KMeans(k=3). Track the run in MLflow and log the silhouette score, the inertia, and the trained pipeline as an artifact.
+
+Also produce and log these 3 visualizations as MLflow figures:
+  • A cluster-center heatmap (3 clusters × 6 features, values in real units)
+  • Feature-distribution boxplots, one panel per feature, colored by cluster
+  • A 2D PCA projection of the scaled features, points colored by cluster
+
+After fitting, inspect the cluster centers (in real units, not z-scores) and assign each cluster_id ONE of these 3 business labels:
+  • Peak Heavy      — high peak share + high overall daily kWh
+  • Seasonal Spiker — strong winter vs summer consumption swing
+  • Green Saver     — low overall daily kWh + reliable payments
+
+Document the final cluster_id → label mapping in the model description (the pipeline scoring step in the next prompt depends on it).
+
+Register the pipeline in Unity Catalog as `<YOUR_CATALOG>.energy_retail_demo.consumption_classifier` (v1).
 ```
 
-- Training is a standalone python script — pipelines are designed for ETL and materialized views, not for one-shot model training. Inference (next prompt) is what will land in a dedicated declarative pipeline.
-- Unsupervised approach: the model *discovers* natural consumption patterns
-- MLflow experiment tracking: silhouette score, cluster visualization
-- Post-hoc labeling: interpretable business labels on top of the statistical clusters
-- "From the Gold table to a registered model in a single prompt"
+- Training is a standalone notebook — pipelines are for ETL and materialized views, not one-shot model training. Inference (next prompt) is what lands in a declarative pipeline.
+- k=3 matches the data: the generator plants exactly three consumption profiles, so the clusters recover cleanly. ~10,000 rows fit comfortably in pandas on the driver — no Spark ML needed.
+- MLflow experiment tracking: silhouette + inertia + 3 figures. UC is the default model registry on current runtimes, so registering with the 3-part name is all it takes.
+- Post-hoc labeling: interpretable business labels (Peak Heavy / Seasonal Spiker / Green Saver) on top of the statistical clusters.
 
 ---
 
-### Prompt 6: Build a new declarative pipeline that applies the model
+### Prompt 5: Build a declarative pipeline that applies the model
 
 ```text
-Create a new Spark Declarative Pipeline named "energy_retail_classification_pipeline" that reads the table `<YOUR_CATALOG>.energy_retail_demo.gold_customer_energy_profile` and produces a Gold materialized view `gold_customer_classifications`.
+Build a Lakeflow Declarative Pipeline named `energy_retail_classification_pipeline` that scores every retail customer with the pre-trained K-Means consumption classifier.
 
-The pipeline should contain a Python script that:
-- Loads the registered model `energy_retail_demo.consumption_classifier` from Unity Catalog using `mlflow.pyfunc.load_model()`
-- Applies the model (scaler + KMeans) to predict each customer's cluster and assigns the consumption_profile label
-- Outputs columns: customer_id, first_name, last_name, region, customer_type, heating_type, tariff_plan_id, avg_daily_kwh, peak_consumption_pct, seasonal_ratio, weekend_ratio, consumption_profile, cluster_id
+Input table — read directly from Unity Catalog:
+`<YOUR_CATALOG>.energy_retail_demo.gold_customer_energy_profile`
 
-Use the catalog `<YOUR_CATALOG>` and serverless compute. Then start the pipeline and show the distribution of consumption profiles, plus the average consumption and average monthly bill per profile.
+It has one row per customer with these columns:
+  • customer_id
+  • 6 numeric consumption features (the model's input): avg_daily_kwh, peak_consumption_pct, weekend_ratio, seasonal_ratio, consumption_trend, payment_reliability_pct
+  • Tariff context to pass through unchanged: plan_id, plan_name, plan_type, peak_rate_eur_kwh, off_peak_rate_eur_kwh, is_flat_tariff
+
+Apply 3 sanity checks on the input view via `dp.expect_or_drop`:
+  • customer_id IS NOT NULL
+  • avg_daily_kwh > 0
+  • payment_reliability_pct BETWEEN 0 AND 100
+
+Pre-trained model (already registered in Unity Catalog):
+`<YOUR_CATALOG>.energy_retail_demo.consumption_classifier`
+Load it with the appropriate MLflow loader for Unity Catalog models. It returns an integer cluster_id (0..2) for each row.
+
+Create a materialized view `<YOUR_CATALOG>.energy_retail_demo.gold_customer_classifications` with one row per customer:
+  • customer_id (from input)
+  • cluster_id (int, raw model output)
+  • consumption_profile (string) — map cluster_id to one of the 3 business labels assigned during training. The exact cluster_id order is documented in the consumption_classifier model description (typical mapping on this data, adjust if your training assigned a different order):
+        0 → 'Peak Heavy'
+        1 → 'Seasonal Spiker'
+        2 → 'Green Saver'
+  • All tariff columns from the input, passed through unchanged.
+
+Use the catalog `<YOUR_CATALOG>` and serverless compute. Then start the pipeline and show the distribution of consumption profiles, plus the average consumption per profile.
 ```
 
 - A **brand-new, single-purpose** Lakeflow Declarative Pipeline — Gold features in, classifications out. The DAG is tiny and easy to read.
-- Genie Code is the right tool here: it generates the pipeline scaffold, the `@dp.materialized_view()`, and the `mlflow.pyfunc.load_model()` call in one shot.
-- Model loaded from Unity Catalog (governance + lineage) — UC stitches the full chain together: Visual Data Prep outputs → trained model → this pipeline → classifications.
-- **The punchline (say it out loud)**: *"~1,200 Night Owl customers are sitting on non-off-peak tariffs. At the current average basket, that's roughly **€340k of annual upsell** — and that's the list our retention team gets Monday morning. Adjust the numbers live to fit the workspace."*
-- Per-segment insights: *"Seasonal Spikers = candidates for an insulation / heat-pump retrofit program. Anomaly-flagged customers = priority field-service tickets."*
-- Results feed directly into the Analytics pillar
+- Genie Code generates the scaffold, the `@dp.materialized_view`, the `dp.expect_or_drop` checks, and the `mlflow.pyfunc` load in one shot (current API: `from pyspark import pipelines as dp`).
+- Model loaded from Unity Catalog (governance + lineage) — UC stitches the full chain: VDP outputs → trained model → this pipeline → classifications.
+- **The punchline (say it out loud)**: *"Now join three signals — the consumption profile, the tariff, and the complaint topic. The Peak Heavy customers on a flat tariff who are already disputing bills are our highest-value at-risk segment: roughly **80 customers, ~€680k of annual revenue at stake**. That's the retention call list. Adjust the numbers live to fit the workspace."*
+- Per-segment insight: *"Seasonal Spikers = candidates for an insulation / heat-pump retrofit program."*
 
 ---
 
 ## Pillar 3 — Analytics: Genie + Dashboard
 
-### Prompt 7: From image to dashboard
+### Prompt 6: From image to dashboard
 
 ```text
 **Upload a mockup** of the energy dashboard (prepared in advance: hand-drawn sketch or digital drawing)
 ```
 
 Suggested mockup contents:
-- KPI cards: Total revenue (EUR), Active customers, Average monthly bill, Overdue rate (%)
-- Line chart: monthly trend of electricity consumption (kWh) over 12 months
-- Bar chart: revenue by tariff plan
-- Donut chart: distribution of customer consumption profiles
+- KPI cards: Total revenue (EUR), Active customers, Average monthly bill, At-risk count
+- Donut chart: distribution of the 3 consumption profiles
+- Bar chart: complaint topic mix
 - Bar chart: consumption by region
-- Table: top 10 highest-consumption customers
+- Table (drill-down): the at-risk list — Peak Heavy · flat tariff · billing dispute
 
 ```text
-Generate an AI/BI Dashboard from this mockup. Use the Gold tables in `<YOUR_CATALOG>.energy_retail_demo`. Minimize the number of datasets — use as few as possible so multiple widgets can share the same dataset and cross-filter each other through associativity. Prefer one wide dataset with joins over many narrow targeted queries.
+Build me this AI/BI Dashboard from the attached hand-drawn mockup — match the layout, KPI tiles, charts and drill-down shown in the image.
+
+Data sources — join these 3 Gold tables in `<YOUR_CATALOG>.energy_retail_demo`:
+  • gold_customer_energy_profile — consumption habits + tariff context
+  • gold_customer_classifications — named consumption profile per customer
+  • gold_customer_topics — dominant complaint topic per customer
+
+The at-risk drill-down filter at the bottom is:
+  consumption_profile = 'Peak Heavy' AND is_flat_tariff = true AND topic = 'billing dispute'.
+
+Use one wide shared dataset across widgets so they cross-filter via Lakeview associativity.
 ```
 
-- "From a back-of-the-envelope sketch to an energy dashboard in 30 seconds"
-- Dashboard connected to the real data produced by our pipeline
-- Cross-filtering: clicking a bar in "Revenue by plan" filters all other widgets — this works because they share the same dataset
-- KPIs auto-update as new data flows through the pipeline
-- Fewer datasets = better interactivity (Lakeview associativity)
+- "From a back-of-the-envelope sketch to an energy dashboard in 30 seconds."
+- Dashboard connected to the real data produced by our pipeline — the three Gold tables join on `customer_id`.
+- Cross-filtering: clicking a profile in the donut filters every other widget — this works because they share one wide dataset (Lakeview associativity).
+- Fewer datasets = better interactivity.
 
 ---
 
-### Prompt 8: Conversational exploration with Genie
+### Prompt 7: Conversational exploration with Genie
 
-Open Genie on the same Gold tables and ask these questions in order. **Lead with the money** — the first question is the punchline that justifies the whole 40 minutes; the rest fill in the operational picture.
+Open Genie on the same 3 Gold tables and ask these in order. **Lead with the money** — the first question is the punchline that justifies the whole 40 minutes; the rest fill in the picture.
 
 ```text
-Which "Night Owl" customers are currently on a tariff plan without a competitive off-peak rate? Show name, region, current plan, and annual kWh — sorted by the largest annual consumption first. That's our commercial upsell list.
+Show me the Peak Heavy customers who are on a flat tariff plan (is_flat_tariff = true) AND whose dominant complaint topic is 'billing dispute'. Order by avg_daily_kwh desc. Include their name, region, plan_name and payment_reliability_pct — these are our highest-value at-risk customers and the call list for tomorrow morning.
 ```
 
 ```text
-Of those Night Owl upsell candidates, which ones also show a high churn_risk_score or have logged 2+ complaints in the last 90 days? Those are retention-priority — we want a save call before the upsell call.
+Same query, but for topic = 'tariff inquiry' — a softer signal, but these are warmer upsell prospects.
 ```
 
 ```text
-What is the monthly trend of electricity consumption across all customers? Which months see the highest consumption?
+What's the average annual revenue at risk per customer in that at-risk list, and the total? (Use avg_daily_kwh × 365 × the peak rate as a rough annual basket.)
 ```
 
 ```text
-Which tariff plan generates the most revenue? What's the average monthly bill per plan?
+Show the distribution of those at-risk targets by region — where should we concentrate the retention effort?
 ```
 
 ```text
-How are customers distributed across consumption profiles? What's the average annual consumption for each profile?
+Which flat-tariff plans contribute the most at-risk candidates? Those are the plans to redesign.
 ```
 
 ```text
-Show me the top 5 regions by total consumption. How does the seasonal pattern differ between Île-de-France and Provence-Alpes-Côte-d'Azur?
+How are customers distributed across the 3 consumption profiles? What's the average daily kWh and average payment reliability for each profile?
 ```
 
 ```text
-How many customers have overdue bills? What's the total overdue amount, and which consumption profiles have the worst payment behavior?
+What are the most frequent complaint topics overall? Which consumption profile carries the most billing disputes?
 ```
 
 ```text
-What are the most frequent complaint categories? What's the average resolution time for outage complaints vs billing disputes?
+Which regions and profiles have the highest seasonal_ratio (largest winter/summer swing)? Those are candidates for an insulation / thermal-renovation program.
 ```
 
-```text
-Which customers carry an anomaly_flag? Group by region and consumption profile — those are field-service priorities.
-```
-
-- The first two questions deliver the **commercial outcome**: a named upsell list, then the retention overlay. Everything after is colour and credibility.
-- Business users are autonomous without SQL knowledge
-- Genie understands context across all Gold tables
-- ML results (consumption profiles) and the new richness columns (`churn_risk_score`, `anomaly_flag`, `has_ev_charger`, `has_solar_panels`) are accessible in plain English
+- The first three questions deliver the **commercial outcome**: a named at-risk list, then the same for warm upsell prospects, then the revenue at stake. Everything after is colour and credibility.
+- Business users are autonomous without SQL knowledge — Genie understands context across all 3 Gold tables.
+- ML results (`consumption_profile`), tariff context (`is_flat_tariff`, `plan_name`), and the AI topic (`topic`) are all accessible in plain English.
 
 ---
 
-### Prompt 9: Enrich the dashboard
+### Prompt 8 (optional): Enrich the dashboard
 
 ```text
 Add a "Customer Profiles" page to the dashboard with:
-- Donut chart: distribution of consumption profiles (Night Owl, Peak Heavy, Steady Consumer, Seasonal Spiker, Green Saver)
+- Donut chart: distribution of the 3 consumption profiles (Peak Heavy, Seasonal Spiker, Green Saver)
 - Grouped bar chart: average feature values per profile (daily consumption, % peak, seasonal ratio, weekend ratio)
-- Bar chart: number of complaints per consumption profile
+- Bar chart: number of each complaint topic per consumption profile
 - Table: top 20 customers with the highest seasonal ratio (candidates for an insulation / thermal renovation program)
-- Line chart: monthly consumption comparison across the 5 profiles
+- Bar chart: at-risk count (Peak Heavy · flat tariff · billing dispute) by region
 ```
 
-- Dashboard built iteratively through conversation
-- ML insights (consumption profiles) directly in the BI layer
-- Actionable insights: "Seasonal Spikers = targets for insulation programs", "Night Owls = upsell to off-peak plans"
-- "The full journey — from raw meter files to ML-powered energy dashboards — done in 40 minutes"
+- Dashboard built iteratively through conversation.
+- ML insights (consumption profiles) directly in the BI layer.
+- Actionable: "Seasonal Spikers = insulation program", "Peak Heavy on flat tariff + billing dispute = retention call list".
+- "The full journey — from raw meter files to an ML-powered retention list — done in 40 minutes."
 
 ---

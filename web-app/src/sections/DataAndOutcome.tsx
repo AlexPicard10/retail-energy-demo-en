@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Users, Zap, Receipt, FileText, MessageSquare, Moon, TrendingUp, Target } from 'lucide-react'
+import { Users, Zap, Receipt, FileText, MessageSquare, Flame, TrendingUp, Target } from 'lucide-react'
 
 type SourceFile = {
   id: string
@@ -72,7 +72,7 @@ const sources: SourceFile[] = [
 ]
 
 const outcomeMetrics = [
-  { value: '~80', label: 'Peak Heavy at-risk', sub: 'on flat tariff · billing dispute', color: '#E5005B', icon: Moon },
+  { value: '~80', label: 'Peak Heavy at-risk', sub: 'on flat tariff · billing dispute', color: '#E5005B', icon: Flame },
   { value: '€680k', label: 'Annual revenue at risk', sub: 'in this segment', color: '#0033A0', icon: TrendingUp },
   { value: '40 min', label: 'Files → action', sub: 'Visual Data Prep + Genie Code', color: '#00C389', icon: Target },
 ]

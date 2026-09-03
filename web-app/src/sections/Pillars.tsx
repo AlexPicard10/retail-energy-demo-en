@@ -34,13 +34,13 @@ const pillars: Pillar[] = [
     duration: '15 min',
     tool: 'visual-data-prep',
     prompt:
-      'Step 1 · Add 5 Source nodes for the raw CSV + JSON files.\nStep 2 · Bronze: built-in data-quality rules (null checks, value ranges, email format).\nStep 3 · Silver: visual joins for FK validation + a Custom SQL node with LATERAL VIEW EXPLODE for the 3-level JSON.\nStep 4 · Gold: Group-By nodes + Custom SQL for seasonal_ratio, consumption_trend, payment_reliability_pct. Publish to UC.',
+      'Step 1 · Add 5 Source nodes for the raw CSV + JSON files.\nStep 2 · One NL prompt → gold_customer_energy_profile: one row per customer with 6 consumption features + tariff context (incl. is_flat_tariff).\nStep 3 · On the interactions JSON: Unique on raw_message → ai_classify (topic) → NL prompt joins topics back per customer → gold_customer_topics. Only ~80 LLM calls.',
     outcomes: [
-      '5 Bronze tables · drop-on-fail quality rules',
-      'Silver: nested JSON flattened via Custom SQL node',
-      'Gold: customer · revenue · regional marts in UC',
+      'gold_customer_energy_profile · one row per customer · 6 ML features + tariff',
+      'gold_customer_topics · last-message topic via Unique + ai_classify',
+      'Native operators + one AI operator · published to UC',
     ],
-    features: ['Visual Data Prep', 'Serverless materialization', 'Unity Catalog'],
+    features: ['Visual Data Prep', 'ai_classify · Mosaic AI', 'Unity Catalog'],
   },
   {
     key: 'ds',

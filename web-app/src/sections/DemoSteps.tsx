@@ -8,6 +8,7 @@ import {
   Copy,
   Database,
   Filter,
+  Fingerprint,
   Layers,
   MousePointer2,
   Save,
@@ -21,7 +22,7 @@ import SectionHeader from '../components/SectionHeader'
 
 type Group = 'ingest' | 'transform' | 'ml' | 'consume'
 
-type OpName = 'Source' | 'Filter' | 'SQL' | 'Join' | 'Aggregate' | 'AI' | 'Output'
+type OpName = 'Source' | 'Filter' | 'SQL' | 'Join' | 'Aggregate' | 'Unique' | 'AI' | 'Output'
 
 type Instruction = string | { text: string; copy: string; copyLabel?: string }
 
@@ -46,6 +47,7 @@ const opIcons: Record<OpName, LucideIcon> = {
   SQL: Code2,
   Join: Workflow,
   Aggregate: Layers,
+  Unique: Fingerprint,
   AI: Sparkles,
   Output: Save,
 }
@@ -93,6 +95,9 @@ the four sources on the canvas.
 
 For each customer I need:
 
+  • Who they are — region, plus first and last name, so the
+    output doubles as a ready-to-use call list.
+
   • Consumption habits — their average daily kWh, the ratio of
     weekend to weekday consumption, the ratio of winter to summer
     consumption, and how their monthly consumption trended over
@@ -123,16 +128,16 @@ That's the only output of this flow.`,
   {
     id: 3,
     title: 'AI-classify customer interactions',
-    detail: 'Aggregate distinct → AI classify → NL prompt joins back → Output. Only ~30 LLM calls.',
+    detail: 'Unique → AI classify → NL prompt joins back → Output. Only ~80 LLM calls.',
     group: 'transform',
     kind: 'manual',
     icon: Sparkles,
     tool: 'On the canvas',
-    flow: ['Source', 'Aggregate', 'AI', 'Join', 'Output'],
+    flow: ['Source', 'Unique', 'AI', 'Join', 'Output'],
     instructions: [
-      'On the `raw_customer_interactions` Source node, drop an **Aggregate** operator and set it to keep `raw_message` distinct. The SMS-style templates collapse 15 000 rows to ~30 unique messages.',
+      'On the `raw_customer_interactions` Source node, drop a **Unique** operator and set its key to **Selected columns → `raw_message`**. The SMS-style templates collapse 30 000 rows to ~80 unique messages.',
       {
-        text: 'Drop an **AI** operator after the Aggregate. Configure: function `ai_classify`, input column `raw_message`, output column `topic`, endpoint `databricks-meta-llama-3-1-8b-instruct`. Paste these as the candidate labels:',
+        text: 'Drop an **AI** operator after the Unique operator. Configure: function `ai_classify`, input column `raw_message`, output column `topic`. Paste these as the candidate labels:',
         copy: `billing dispute, service outage, tariff inquiry, meter issue, general feedback`,
         copyLabel: 'Candidate labels',
       },
@@ -157,10 +162,10 @@ Important
       },
       'End with an **Output** node — write one row per customer to `<YOUR_CATALOG>.energy_retail_demo.gold_customer_topics`.',
     ],
-    databricks: ['Visual Data Prep · Aggregate + AI operators', '`ai_classify` on Mosaic AI · 8B endpoint', 'DISTINCT + join-back optimization (~500× fewer LLM calls)'],
+    databricks: ['Visual Data Prep · Unique + AI operators', '`ai_classify` on the built-in Mosaic AI endpoint', 'Unique + join-back optimization (~350× fewer LLM calls)'],
     assets: [
       '`gold_customer_topics` — one row per customer with their last-message topic',
-      '~30 distinct messages classified instead of 15 000 → seconds instead of minutes',
+      '~80 distinct messages classified instead of 30 000 → seconds instead of minutes',
     ],
   },
   {
@@ -189,9 +194,10 @@ the analysis layer. Cluster only on these 6 consumption features:
   • consumption_trend
   • payment_reliability_pct
 
-Runtime: Serverless notebook — pull the 5 000 rows into pandas, scale
-the features, and use scikit-learn. Before registering the model, set
-the MLflow registry to the Unity Catalog one and use the 3-part UC name.
+Runtime: Serverless notebook — pull the ~10 000 rows into pandas, scale
+the features, and use scikit-learn. Register the model to Unity Catalog
+using its 3-part name (catalog.schema.model) — UC is the default registry
+on current runtimes.
 
 Pipeline: StandardScaler + KMeans(k=3). Track the run in MLflow and
 log the silhouette score, the inertia, and the trained pipeline as
@@ -772,14 +778,14 @@ WHERE  k.consumption_profile = 'Peak Heavy'
   AND  p.is_flat_tariff
   AND  t.topic = 'billing dispute'
 ORDER  BY annual_kwh DESC
-LIMIT  1200;`}
+LIMIT  200;`}
             </pre>
           </div>
 
           <div className="mt-2 overflow-hidden rounded-xl border border-engie-deep/10 bg-white">
             <div className="flex items-center justify-between border-b border-engie-deep/10 px-3 py-1.5">
               <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-engie-green">
-                result · 42 rows · 0.31 s
+                result · 80 rows · 0.31 s
               </span>
               <span className="rounded-full bg-engie-green/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-engie-green">
                 at-risk list
@@ -807,7 +813,7 @@ LIMIT  1200;`}
                 ))}
                 <tr className="border-t border-engie-deep/5 bg-engie-green/[0.04]">
                   <td colSpan={5} className="px-3 py-1.5 text-center font-mono text-[10.5px] uppercase tracking-wider text-engie-navy/55">
-                    + 38 more · €340k estimated annual revenue at risk
+                    + 76 more · €680k estimated annual revenue at risk
                   </td>
                 </tr>
               </tbody>

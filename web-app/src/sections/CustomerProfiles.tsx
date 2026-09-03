@@ -9,7 +9,7 @@ const profiles = [
     name: 'Seasonal Spiker',
     icon: <ThermometerSun className="h-5 w-5" />,
     color: '#FF7A59',
-    share: 32,
+    share: 28,
     avgKwh: 16.1,
     monthly: 95,
     blurb: 'Large winter/summer gap — candidates for thermal-insulation programs and bill-smoothing plans.',
@@ -20,7 +20,7 @@ const profiles = [
     name: 'Peak Heavy',
     icon: <Flame className="h-5 w-5" />,
     color: '#E5005B',
-    share: 38,
+    share: 44,
     avgKwh: 18.6,
     monthly: 121,
     blurb: 'Heavy peak-hour usage — highest-revenue segment; the at-risk ones are our top retention targets.',
@@ -31,7 +31,7 @@ const profiles = [
     name: 'Green Saver',
     icon: <Leaf className="h-5 w-5" />,
     color: '#00C389',
-    share: 30,
+    share: 28,
     avgKwh: 6.4,
     monthly: 38,
     blurb: 'Low overall consumption + reliable payer — natural fit for green-energy bundles and loyalty rewards.',
@@ -54,7 +54,7 @@ export default function CustomerProfiles() {
         <ClusterReveal />
 
         {/* Profile cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-3">
           {profiles.map((p, i) => (
             <motion.div
               key={p.id}
@@ -364,7 +364,7 @@ function ClusterReveal() {
         <p className="text-[13px] text-engie-navy/70">
           {revealed ? (
             <>
-              <strong className="text-engie-navy">5 segments emerge</strong> — each one maps to a
+              <strong className="text-engie-navy">3 segments emerge</strong> — each one maps to a
               different commercial play. Genie can name them and find the customers in seconds.
             </>
           ) : (

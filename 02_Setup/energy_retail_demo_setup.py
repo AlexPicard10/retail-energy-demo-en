@@ -215,9 +215,9 @@ FEEDBACK_KEYWORDS = {
 # Short SMS / tweet-style French messages, grouped by interaction.category.
 # Picking the template from the chosen category keeps raw_message coherent
 # with interaction.category, sentiment.label and keywords. The pool is kept
-# small on purpose (~70 unique strings × a few placeholder variants) so the
-# DISTINCT optimization in the AI step is still meaningful (~150x compression
-# on 15,000 generated rows) while looking realistic.
+# small on purpose (~80 unique strings after placeholder fills) so the
+# Unique + AI-classify optimization in the demo is still meaningful (~350x
+# compression on 30,000 generated rows) while looking realistic.
 TEMPLATES_BY_CATEGORY = {
     # ---- complaint ----
     "outage": [
@@ -383,8 +383,9 @@ TARIFF_PLANS = [
         "standing_charge_eur_month": 13.00, "green_energy_pct": 75, "plan_type": "green_offer",
     },
     {
-        # FLAT tariff — single rate. Worst case for off-peak-heavy customers
-        # (Night Owls) and the headline upsell target in the demo.
+        # FLAT tariff — single rate. The headline at-risk target in the demo:
+        # high-consumption (Peak Heavy) customers stranded here pay the peak
+        # rate around the clock, with no off-peak relief.
         "plan_id": "PLAN-09", "name": "Offre Entreprise Standard",
         "peak_rate_eur_kwh": 0.2100, "off_peak_rate_eur_kwh": 0.2100,
         "standing_charge_eur_month": 25.00, "green_energy_pct": 0, "plan_type": "market_offer_fixed",
@@ -396,8 +397,8 @@ TARIFF_PLANS = [
     },
     {
         # FLAT residential tariff (near-flat — off_peak rate ~ peak rate).
-        # Pairs with PLAN-09 to give the demo a non-empty upsell list of
-        # Night Owls who would benefit from switching to a tiered plan.
+        # Pairs with PLAN-09 to give the demo a non-empty at-risk list of
+        # flat-tariff customers who would benefit from switching to a tiered plan.
         "plan_id": "PLAN-11", "name": "Tarif Unique Confort",
         "peak_rate_eur_kwh": 0.2200, "off_peak_rate_eur_kwh": 0.2150,
         "standing_charge_eur_month": 11.50, "green_energy_pct": 0, "plan_type": "market_offer_fixed",
@@ -1019,7 +1020,7 @@ def bump_churn_with_interactions(customers_df: pl.DataFrame, interactions: list[
 
     The base score (set in gen_customers) reflects structural risk only; this pass folds
     in actual customer-service signal so Genie can answer questions like
-    "which Night Owl customers are also churn-flagged?" with a defensible result.
+    "which at-risk customers are also churn-flagged?" with a defensible result.
     """
     header("Bumping churn_risk_score from interactions")
     complaint_count: dict[str, int] = {}

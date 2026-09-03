@@ -41,12 +41,14 @@ web-app/
 │   │   ├── ScrollProgress.tsx       ← Top progress bar
 │   │   └── SectionHeader.tsx
 │   ├── sections/
-│   │   ├── Hero.tsx                 ← Title + stats + brand row
+│   │   ├── Hero.tsx                 ← Title + live Genie Code prompt preview + brand row
 │   │   ├── WhatIsGenieCode.tsx      ← Genie vs Genie Code + DI Platform foundation
 │   │   ├── AIDevKit.tsx             ← Skills/Tools/MCP/Builder + copyable install command
-│   │   ├── DemoScenario.tsx         ← Interactive 8-step walkthrough (Play/Reset)
+│   │   ├── DataAndOutcome.tsx       ← The brief: 5 source files in → at-risk call list out
+│   │   ├── DemoScenario.tsx         ← Architecture: animated medallion + ML flow
+│   │   ├── DemoSteps.tsx            ← Interactive 7-step walkthrough (canvas + prompts, copy buttons)
 │   │   ├── Pillars.tsx              ← DE / DS / Analytics tabs + sample prompts
-│   │   ├── CustomerProfiles.tsx     ← 5 K-Means clusters + Recharts bar chart
+│   │   ├── CustomerProfiles.tsx     ← 3 K-Means clusters + live cluster reveal
 │   │   ├── Roadmap.tsx              ← 4 upcoming Genie Code features
 │   │   ├── CTA.tsx                  ← Closing 3-step run-the-demo card
 │   │   └── Footer.tsx
@@ -75,23 +77,24 @@ No backend, no state library — content is co-located with each section.
 
 ## Sections (top to bottom)
 
-1. **Hero** — value statement + 4 KPIs (5,000 customers, 500k readings, 5 ML profiles, 45 min)
+1. **Hero** — value statement + a live Genie Code prompt preview (k=3 train → register → pipeline)
 2. **What is Genie Code** — split between Genie (business) and Genie Code (technical) over the Data Intelligence Platform foundation
 3. **AI Dev Kit** — Skills · Tools · MCP Server · Builder App, plus the one-line install command (`databricks-solutions/ai-dev-kit`) ready to copy
-4. **Demo Scenario** — 8-step interactive walkthrough (Play / Reset) with prompt excerpts and a live progress dock
-5. **3 Pillars** — tab switcher (Data Engineering / Data Science / Analytics), each with a real prompt block, outcomes, and the medallion architecture diagram below
-6. **Customer Profiles** — the 5 K-Means clusters (Night Owl, Peak Heavy, Steady, Seasonal Spiker, Green Saver) with share, kWh, monthly bill — and the closing Genie upsell question
-7. **Roadmap** — 4 upcoming features (Scheduled Agents, Canvas with Artifacts, Drive/SharePoint search, Knowledge Extraction)
-8. **CTA** — 3-step "run the demo" card linking back to the rest of the package
-9. **Footer**
+4. **The brief** — the 5 source files in a UC Volume → the Peak Heavy at-risk call list out (~80 customers · €680k at risk)
+5. **Architecture** — animated Bronze → Silver → Gold + ML medallion flow
+6. **The 7 steps** — interactive walkthrough (2 canvas steps + 5 copy-paste prompts) for Visual Data Prep and Genie Code
+7. **3 Pillars** — tab switcher (Data Engineering / Data Science / Analytics), each with a real prompt block and outcomes
+8. **Customer Profiles** — the 3 K-Means clusters (Peak Heavy, Seasonal Spiker, Green Saver) with share, kWh, monthly bill — and the closing Genie retention question
+9. **Roadmap** — 4 upcoming features (Scheduled Agents, Canvas with Artifacts, Drive/SharePoint search, Knowledge Extraction)
+10. **CTA** — 3-step "run the demo" card linking back to the rest of the package
 
 ---
 
 ## Pitch flow tips
 
-- Open with the **Hero** for 30s, then jump into **Demo Scenario** and click **Play** to give a feel for the 8-step flow.
-- For technical audiences, dwell on **3 Pillars** and switch tabs (DE / DS / Analytics) — each tab shows the actual Genie Code prompt and the outcome.
-- Close with **Customer Profiles** punchline ("Which Night Owl customers are not on a competitive off-peak rate?") — that turns ML into a commercial action.
+- Open with the **Hero** for 30s, then jump into **The brief** and **Architecture** to frame the goal and the flow.
+- For technical audiences, dwell on **The 7 steps** and **3 Pillars** (DE / DS / Analytics) — each shows the actual prompt and the outcome.
+- Close with the **Customer Profiles** punchline ("Which Peak Heavy customers on a flat tariff are complaining about their bills?") — that turns ML into a commercial action.
 - **Roadmap** is optional; only show if the audience asks "what's next?".
 
 ---
@@ -100,7 +103,7 @@ No backend, no state library — content is co-located with each section.
 
 - Colors: edit `tailwind.config.js` → `theme.extend.colors.engie.*`
 - Stats in Hero: edit `src/sections/Hero.tsx`
-- Prompts shown in DemoScenario / Pillars: edit `src/sections/DemoScenario.tsx` and `src/sections/Pillars.tsx`
+- Prompts shown in the 7-step walkthrough / Pillars: edit `src/sections/DemoSteps.tsx` and `src/sections/Pillars.tsx`
 - Cluster numbers in CustomerProfiles: edit `src/sections/CustomerProfiles.tsx`
 - Roadmap items: edit `src/sections/Roadmap.tsx`
 
