@@ -96,7 +96,7 @@ Wire downstream of the Bronze nodes — all visual, with one Custom SQL escape h
     sentiment.score AS sentiment_score,
     sentiment.label AS sentiment_label,
     keyword,
-    details.comment_text,
+    raw_message,
     details.resolution.status AS resolution_status,
     details.resolution.action AS resolution_action,
     details.resolution.resolution_time_hours,

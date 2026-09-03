@@ -68,11 +68,11 @@ python3 02_Setup/energy_retail_demo_setup.py \
 
 Replace `<YOUR_PROFILE>` with a CLI profile name (e.g. `my-workspace`) and `<YOUR_CATALOG>` with the Unity Catalog you have rights on (e.g. `main`, `dev_sandbox`). The script creates a schema `energy_retail_demo`, a UC volume `raw_data`, and uploads:
 
-- `raw_customers.csv` — 5,000 customers with anomaly flags, churn-risk score, EV / solar / household-size enrichment
-- `raw_consumption.csv` — ~640k smart-meter readings (daily + weekly + hourly samples), with realistic spike / flatline anomalies on ~5% of customers
-- `raw_billing.csv` — 60,000 monthly bills
-- `raw_tariff_plans.csv` — 10 tariff plans (regulated, fixed, indexed, green)
-- `raw_customer_interactions.json` — 15,000 nested-JSON support interactions (3 levels deep)
+- `raw_customers.csv` — 10,000 customers with anomaly flags, churn-risk score, EV / solar / household-size enrichment
+- `raw_consumption.csv` — ~3.65M smart-meter readings (one daily reading per customer for a full year), with realistic spike / flatline anomalies on ~5% of customers
+- `raw_billing.csv` — 120,000 monthly bills
+- `raw_tariff_plans.csv` — 11 tariff plans (regulated, fixed, indexed, green)
+- `raw_customer_interactions.json` — 30,000 nested-JSON support interactions (3 levels deep)
 
 Useful flags:
 - `--check` — verify state without creating any resources
