@@ -74,6 +74,8 @@ For each customer I need:
 
   • Current tariff — plan id, plan name, plan type, peak and off-peak rates, plus a flag is_flat_tariff that is true when the peak and off-peak rates are essentially the same.
 
+Name the six feature columns exactly: avg_daily_kwh, peak_consumption_pct, weekend_ratio, seasonal_ratio, consumption_trend, payment_reliability_pct.
+
 Build it as a readable Visual Data Prep flow using native operators rather than a single SQL block.
 
 Before publishing, double-check that the table has every customer in it and that nobody ends up with a zero average daily kWh — if some do, a join or filter is dropping their consumption rows.
@@ -147,6 +149,8 @@ It also carries tariff and topic columns — ignore those, they're for the analy
   • seasonal_ratio
   • consumption_trend
   • payment_reliability_pct
+
+These are the exact column names in gold_customer_energy_profile — read them as-is; do not rename or remap them.
 
 Runtime: Serverless notebook — pull the ~10 000 rows into pandas, scale the features, and use scikit-learn. Register the model to Unity Catalog using its 3-part name (catalog.schema.model) — UC is the default registry on current runtimes.
 

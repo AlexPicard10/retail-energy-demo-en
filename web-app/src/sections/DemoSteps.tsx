@@ -110,6 +110,10 @@ For each customer I need:
     off-peak rates, plus a flag is_flat_tariff that is true when
     the peak and off-peak rates are essentially the same.
 
+Name the six feature columns exactly: avg_daily_kwh,
+peak_consumption_pct, weekend_ratio, seasonal_ratio,
+consumption_trend, payment_reliability_pct.
+
 Build it as a readable Visual Data Prep flow using native operators
 rather than a single SQL block.
 
@@ -193,6 +197,9 @@ the analysis layer. Cluster only on these 6 consumption features:
   • seasonal_ratio
   • consumption_trend
   • payment_reliability_pct
+
+These are the exact column names in gold_customer_energy_profile — read
+them as-is; do not rename or remap them.
 
 Runtime: Serverless notebook — pull the ~10 000 rows into pandas, scale
 the features, and use scikit-learn. Register the model to Unity Catalog
