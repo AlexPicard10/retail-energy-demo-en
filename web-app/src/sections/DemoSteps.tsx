@@ -1,9 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  AppWindow,
   ArrowRight,
   BarChart3,
-  Bot,
   Brain,
   Check,
   Code2,
@@ -14,7 +12,6 @@ import {
   Layers,
   MousePointer2,
   Save,
-  ShieldCheck,
   Sparkles,
   User,
   Workflow,
@@ -23,7 +20,7 @@ import {
 import { useState } from 'react'
 import SectionHeader from '../components/SectionHeader'
 
-type Group = 'ingest' | 'transform' | 'ml' | 'consume' | 'agent'
+type Group = 'ingest' | 'transform' | 'ml' | 'consume'
 
 type OpName = 'Source' | 'Filter' | 'SQL' | 'Join' | 'Aggregate' | 'Unique' | 'AI' | 'Output'
 
@@ -39,7 +36,6 @@ type Step = {
   flow?: OpName[]
   prompt?: string
   instructions?: Instruction[]
-  manualWhere?: string
   databricks: string[]
   assets: string[]
   icon: LucideIcon
@@ -61,7 +57,6 @@ const groups: Record<Group, { label: string; color: string; dot: string }> = {
   transform: { label: 'Transform', color: '#0033A0', dot: 'bg-engie-deep' },
   ml: { label: 'ML', color: '#E5005B', dot: 'bg-engie-magenta' },
   consume: { label: 'Consume', color: '#00C389', dot: 'bg-engie-green' },
-  agent: { label: 'Agent', color: '#7C5CD6', dot: 'bg-[#7C5CD6]' },
 }
 
 const steps: Step[] = [
@@ -348,108 +343,6 @@ Follow-ups in the guide:
       'Actionable at-risk list combining ML profile + AI topic + tariff',
     ],
   },
-  {
-    id: 8,
-    title: 'Put the LLM behind an AI Gateway',
-    detail: 'Create a governed AI Gateway model service in the UI — usage tracking, payload logging, rate limits, PII guardrails.',
-    group: 'agent',
-    kind: 'manual',
-    icon: ShieldCheck,
-    tool: 'In the Serving UI',
-    manualWhere: 'In the Serving UI',
-    instructions: [
-      'Open **Serving** (Machine Learning → Serving) and click **Create serving endpoint** — this is the governed AI Gateway model service.',
-      'Name it `energy_retail_demo_llm`. For the served entity, pick a **pay-per-token Foundation Model** (e.g. `databricks-claude-sonnet-4-6`).',
-      'Open the **AI Gateway** section and turn on **Usage tracking**.',
-      {
-        text: 'Enable **Inference tables** (payload logging) and point them at the demo schema:',
-        copy: `Catalog: <YOUR_CATALOG>
-Schema: energy_retail_demo
-Table prefix: llm_gateway`,
-        copyLabel: 'Inference table config',
-      },
-      'Add a **rate limit** of 500 requests/min per endpoint, then enable **Guardrails** — safety on + PII masking.',
-      'Click **Create**. Once the endpoint is Ready, send one test prompt from the built-in query box.',
-      {
-        text: 'Confirm the call was logged — query the payload table:',
-        copy: `SELECT * FROM <YOUR_CATALOG>.energy_retail_demo.llm_gateway_payload ORDER BY 1 DESC LIMIT 20`,
-        copyLabel: 'Verify in the inference table',
-      },
-    ],
-    databricks: ['AI Gateway model service in Unity Catalog', 'Inference table + usage tracking', 'Rate limits + PII/safety guardrails'],
-    assets: [
-      '`energy_retail_demo_llm` — governed AI Gateway model service every agent call routes through',
-      '`llm_gateway_*` inference table — full request/response audit log in UC',
-    ],
-  },
-  {
-    id: 9,
-    title: 'Build a custom retention agent',
-    detail: 'A ResponsesAgent with UC-function tools — LLM calls routed through the gateway.',
-    group: 'agent',
-    kind: 'prompt',
-    icon: Bot,
-    tool: 'Genie Code prompt',
-    prompt: `Author a custom tool-using agent for our retail retention
-analyst.
-
-First create these UC functions in \`<YOUR_CATALOG>.energy_retail_demo\`
-over the 3 Gold tables:
-  • at_risk_customers(max_rows INT) — Peak Heavy AND is_flat_tariff
-    AND topic = 'billing dispute'; return name, region, plan_name,
-    payment_reliability_pct and annual kWh.
-  • revenue_at_risk() — total € and customer count for that segment.
-  • customer_360(customer_id STRING) — one customer's profile, tariff,
-    last topic and payment reliability.
-  • profile_summary() — per consumption_profile: count, avg daily kWh,
-    avg payment reliability.
-
-Then write an MLflow ResponsesAgent (LangGraph) whose LLM is
-ChatDatabricks(endpoint="energy_retail_demo_llm") — the governed
-gateway endpoint from the previous step — and bind those four UC
-functions as tools with UCFunctionToolkit. System prompt: you are the
-retail retention analyst for a French energy provider; always ground
-answers in tool output and show the numbers.
-
-Log the agent with resources=[the gateway serving endpoint + the four
-UC functions] so it gets pass-through auth, register it to Unity
-Catalog as \`energy_retail_demo.retention_agent\`, and deploy it with
-databricks.agents.deploy().
-
-Test it: "Who are our top at-risk customers and how much revenue is at
-stake?"`,
-    databricks: ['MLflow ResponsesAgent (LangGraph)', 'UC functions as governed tools', '`agents.deploy()` → Model Serving'],
-    assets: [
-      '`retention_agent` registered in UC + a live serving endpoint',
-      'Every agent LLM call logged in the Step-8 gateway inference table',
-    ],
-  },
-  {
-    id: 10,
-    title: 'Ship it as a chat app',
-    detail: 'A Databricks App with a chat UI in front of the agent endpoint.',
-    group: 'agent',
-    kind: 'prompt',
-    icon: AppWindow,
-    tool: 'Genie Code prompt',
-    prompt: `Scaffold a Databricks App (AppKit, --features serving) with a
-chat interface in front of the \`retention_agent\` serving endpoint.
-
-  • Wire the React chat page to the endpoint with the useServingStream
-    hook so answers stream token by token.
-  • In app.yaml, declare the serving-endpoint resource pointing at
-    retention_agent, and request the serving.serving-endpoints user
-    scope.
-
-Deploy the app and give me the URL. A retention manager should be able
-to ask, in plain English, "show me this week's at-risk call list" and
-get the answer streamed back.`,
-    databricks: ['Databricks Apps · AppKit + React', '`serving()` plugin · useServingStream', 'App SP granted CAN_QUERY via app.yaml'],
-    assets: [
-      'A deployed Databricks App with a streaming chat UI',
-      'Business users talk to the governed agent — no SQL, no notebook',
-    ],
-  },
 ]
 
 export default function DemoSteps() {
@@ -473,14 +366,14 @@ export default function DemoSteps() {
       <div className="container-pitch">
         <SectionHeader
           number="04"
-          kicker="The 10 steps · live tools"
+          kicker="The 7 steps · live tools"
           title={
             <>
-              Walk the 10 steps —{' '}
-              <span className="text-gradient">two on the canvas, one in the Serving UI, the rest as plain-English prompts.</span>
+              Walk the 7 steps —{' '}
+              <span className="text-gradient">two on the canvas, the rest as plain-English prompts.</span>
             </>
           }
-          subtitle="Pick a step, set your catalog. Manual steps walk you through the UI; prompt steps give you the exact text to paste into Visual Data Prep or Genie Code."
+          subtitle="Pick a step, set your catalog. Manual steps walk you through the canvas; prompt steps give you the exact text to paste into Visual Data Prep or Genie Code."
         />
 
         <div className="card-strong overflow-hidden p-5 md:p-7">
@@ -590,7 +483,6 @@ export default function DemoSteps() {
                 {step.kind === 'manual' ? (
                   <ManualPanel
                     flow={step.flow ?? []}
-                    where={step.manualWhere ?? 'On the canvas'}
                     instructions={(step.instructions ?? []).map((ins) =>
                       typeof ins === 'string'
                         ? substitute(ins)
@@ -694,12 +586,10 @@ function ManualPanel({
   flow,
   instructions,
   accent,
-  where = 'On the canvas',
 }: {
   flow: OpName[]
   instructions: Instruction[]
   accent: string
-  where?: string
 }) {
   const renderText = (text: string) =>
     text
@@ -761,7 +651,7 @@ function ManualPanel({
       <div className="rounded-xl border border-engie-deep/10 bg-white p-4">
         <div className="kicker mb-3 flex items-center gap-2 text-engie-deep/70">
           <MousePointer2 className="h-3.5 w-3.5" />
-          {where}
+          On the canvas
         </div>
         <ol className="space-y-2.5">
           {instructions.map((ins, i) => {

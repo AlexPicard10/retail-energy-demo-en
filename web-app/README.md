@@ -46,7 +46,7 @@ web-app/
 │   │   ├── AIDevKit.tsx             ← Skills/Tools/MCP/Builder + copyable install command
 │   │   ├── DataAndOutcome.tsx       ← The brief: 5 source files in → at-risk call list out
 │   │   ├── DemoScenario.tsx         ← Architecture: animated medallion + ML flow
-│   │   ├── DemoSteps.tsx            ← Interactive 10-step walkthrough (canvas + prompts, copy buttons)
+│   │   ├── DemoSteps.tsx            ← Interactive 7-step walkthrough (canvas + prompts, copy buttons)
 │   │   ├── Pillars.tsx              ← DE / DS / Analytics tabs + sample prompts
 │   │   ├── CustomerProfiles.tsx     ← 3 K-Means clusters + live cluster reveal
 │   │   ├── Roadmap.tsx              ← 4 upcoming Genie Code features
@@ -82,8 +82,8 @@ No backend, no state library — content is co-located with each section.
 3. **AI Dev Kit** — Skills · Tools · MCP Server · Builder App, plus the one-line install command (`databricks-solutions/ai-dev-kit`) ready to copy
 4. **The brief** — the 5 source files in a UC Volume → the Peak Heavy at-risk call list out (~80 customers · €680k at risk)
 5. **Architecture** — animated Bronze → Silver → Gold + ML medallion flow
-6. **The 10 steps** — interactive walkthrough (2 canvas steps + 8 copy-paste prompts) for Visual Data Prep and Genie Code, ending with the governed-agent + chat-app bonus
-7. **4 Pillars** — tab switcher (Data Engineering / Data Science / Analytics / Agents & Apps), each with a real prompt block and outcomes
+6. **The 7 steps** — interactive walkthrough (2 canvas steps + 5 copy-paste prompts) for Visual Data Prep and Genie Code
+7. **3 Pillars** — tab switcher (Data Engineering / Data Science / Analytics), each with a real prompt block and outcomes
 8. **Customer Profiles** — the 3 K-Means clusters (Peak Heavy, Seasonal Spiker, Green Saver) with share, kWh, monthly bill — and the closing Genie retention question
 9. **Roadmap** — 4 upcoming features (Scheduled Agents, Canvas with Artifacts, Drive/SharePoint search, Knowledge Extraction)
 10. **CTA** — 3-step "run the demo" card linking back to the rest of the package
@@ -93,7 +93,7 @@ No backend, no state library — content is co-located with each section.
 ## Pitch flow tips
 
 - Open with the **Hero** for 30s, then jump into **The brief** and **Architecture** to frame the goal and the flow.
-- For technical audiences, dwell on **The 10 steps** and **4 Pillars** (DE / DS / Analytics / Agents & Apps) — each shows the actual prompt and the outcome.
+- For technical audiences, dwell on **The 7 steps** and **3 Pillars** (DE / DS / Analytics) — each shows the actual prompt and the outcome.
 - Close with the **Customer Profiles** punchline ("Which Peak Heavy customers on a flat tariff are complaining about their bills?") — that turns ML into a commercial action.
 - **Roadmap** is optional; only show if the audience asks "what's next?".
 
@@ -103,7 +103,7 @@ No backend, no state library — content is co-located with each section.
 
 - Colors: edit `tailwind.config.js` → `theme.extend.colors.engie.*`
 - Stats in Hero: edit `src/sections/Hero.tsx`
-- Prompts shown in the 10-step walkthrough / Pillars: edit `src/sections/DemoSteps.tsx` and `src/sections/Pillars.tsx`
+- Prompts shown in the 7-step walkthrough / Pillars: edit `src/sections/DemoSteps.tsx` and `src/sections/Pillars.tsx`
 - Cluster numbers in CustomerProfiles: edit `src/sections/CustomerProfiles.tsx`
 - Roadmap items: edit `src/sections/Roadmap.tsx`
 

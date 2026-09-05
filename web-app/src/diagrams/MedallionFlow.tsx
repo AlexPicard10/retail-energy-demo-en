@@ -147,9 +147,8 @@ const variantStyles: Record<Box['variant'], string> = {
     'border-[#0E5147]/40 bg-gradient-to-br from-[#0F766E] via-[#0B5E58] to-[#0A3A35] text-white',
 }
 
-// Step number badges anchored on/near each box. Numbers map to the 7 core
-// steps in the walkthrough rail (the Agents & Apps bonus, steps 8-10, is not
-// part of this medallion diagram); we keep numbers only here to avoid the
+// Step number badges anchored on/near each box. Numbers map to the 7-step
+// rail rendered below DemoScenario; we keep numbers only here to avoid the
 // long text labels that previously crowded the canvas.
 const stepBadges = [
   { id: 1, x: 240, y: 220, color: '#0066B8' }, // sources — Add source files
@@ -280,7 +279,7 @@ export default function MedallionFlow() {
       <div className="relative z-20 mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-engie-deep">
-            Demo scenario · 7 core steps
+            Demo scenario · 7 steps
           </div>
           <div className="mt-1 font-display text-xl font-bold text-engie-navy md:text-2xl">
             Visual Data Prep builds the Gold tables.{' '}

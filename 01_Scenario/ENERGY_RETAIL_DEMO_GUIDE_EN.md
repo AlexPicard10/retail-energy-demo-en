@@ -5,7 +5,7 @@
 > **Volume**: `/Volumes/<YOUR_CATALOG>/energy_retail_demo/raw_data/`
 > **Setup**: see `02_Setup/energy_retail_demo_setup.py`
 
-This guide is the presenter script for the web-app deck (`web-app/`) — drive the two canvas steps live in Visual Data Prep, and copy each Genie Code / Genie prompt in order. Pillar 4 (Agents & Apps) is an optional bonus.
+This guide is the presenter script. It mirrors the 7 steps in the web-app deck (`web-app/`) one-for-one — drive the two canvas steps live in Visual Data Prep, and copy each Genie Code / Genie prompt in order.
 
 ## Timeline overview
 
@@ -15,7 +15,6 @@ This guide is the presenter script for the web-app deck (`web-app/`) — drive t
 | 3-18 min | **Data Engineering** | **Visual Data Prep**: build the customer profile + AI-classify interactions |
 | 18-30 min | **Data Science** | Genie Code: train K-Means (k=3), then a Lakeflow pipeline that applies the model |
 | 30-43 min | **Analytics** | Image-to-dashboard + Genie exploration |
-| +12 min (bonus) | **Agents & Apps** | AI Gateway model service (UI), then Genie Code: custom agent → Databricks chat app |
 | 43-45 min | Q&A |
 
 ---
@@ -314,61 +313,5 @@ Add a "Customer Profiles" page to the dashboard with:
 - ML insights (consumption profiles) directly in the BI layer.
 - Actionable: "Seasonal Spikers = insulation program", "Peak Heavy on flat tariff + billing dispute = retention call list".
 - "The full journey — from raw meter files to an ML-powered retention list — done in 40 minutes."
-
----
-
-## Pillar 4 — Governed Agent + Chat App (bonus, ~12 min)
-
-> A "productize it" finale: create an **AI Gateway** model service (in the Serving UI), then use **Genie Code** to build a **custom tool-using agent** over the Gold tables and ship it as a **Databricks App** with a chat interface. Optional — run it only if time allows or the audience is technical.
-
-### Step 9: Create the AI Gateway model service (in the UI)
-
-> The gateway model service is quickest to create by hand in the Serving UI — Genie Code takes over from Step 10.
-
-1. Open **Serving** (Machine Learning → Serving) and click **Create serving endpoint** — the governed AI Gateway model service.
-2. Name it `energy_retail_demo_llm`; for the served entity pick a **pay-per-token Foundation Model** (e.g. `databricks-claude-sonnet-4-6`).
-3. In the **AI Gateway** section, turn on **Usage tracking**.
-4. Enable **Inference tables** (payload logging): catalog `<YOUR_CATALOG>`, schema `energy_retail_demo`, table prefix `llm_gateway`.
-5. Add a **rate limit** of 500 requests/min per endpoint, then enable **Guardrails** (safety + PII masking).
-6. **Create** the endpoint; once Ready, send one test prompt from the built-in query box and confirm a row lands in `<YOUR_CATALOG>.energy_retail_demo.llm_gateway_payload`.
-
-- Governance sits **in front of** the model: every downstream call is metered, payload-logged for audit, rate-limited, and PII-guardrailed.
-- The inference table is a real Unity Catalog table — query it live to prove each call is captured.
-
-### Prompt 10: Build a custom retention agent
-
-```text
-Author a custom tool-using agent for our retail retention analyst.
-
-First create these UC functions in `<YOUR_CATALOG>.energy_retail_demo` over the 3 Gold tables:
-- at_risk_customers(max_rows INT) — Peak Heavy AND is_flat_tariff AND topic = 'billing dispute'; return name, region, plan_name, payment_reliability_pct and annual kWh.
-- revenue_at_risk() — total € and customer count for that segment.
-- customer_360(customer_id STRING) — one customer's profile, tariff, last topic and payment reliability.
-- profile_summary() — per consumption_profile: count, avg daily kWh, avg payment reliability.
-
-Then write an MLflow ResponsesAgent (LangGraph) whose LLM is ChatDatabricks(endpoint="energy_retail_demo_llm") — the governed gateway endpoint from the previous step — and bind those four UC functions as tools with UCFunctionToolkit. System prompt: you are the retail retention analyst for a French energy provider; always ground answers in tool output and show the numbers.
-
-Log the agent with resources=[the gateway serving endpoint + the four UC functions] so it gets pass-through auth, register it to Unity Catalog as `energy_retail_demo.retention_agent`, and deploy it with databricks.agents.deploy().
-
-Test it: "Who are our top at-risk customers and how much revenue is at stake?"
-```
-
-- The tools are **governed UC functions** — lineage + permissions, reusable beyond the agent.
-- The agent's own LLM traffic flows through the Prompt-9 gateway: ask a question, then show the new rows landing in the inference table.
-- `agents.deploy()` creates a Model Serving endpoint (with tracing + feedback) in one call.
-
-### Prompt 11: Ship it as a chat app
-
-```text
-Scaffold a Databricks App (AppKit, --features serving) with a chat interface in front of the `retention_agent` serving endpoint.
-- Wire the React chat page to the endpoint with the useServingStream hook so answers stream token by token.
-- In app.yaml, declare the serving-endpoint resource pointing at retention_agent, and request the serving.serving-endpoints user scope.
-
-Deploy the app and give me the URL. A retention manager should be able to ask, in plain English, "show me this week's at-risk call list" and get the answer streamed back.
-```
-
-- The app service principal gets `CAN_QUERY` on the endpoint automatically via the `app.yaml` resource declaration.
-- End state: a business user talks to the governed agent in plain English — no SQL, no notebook — and every call is logged through the gateway.
-- "From raw meter files to a governed, self-service retention assistant — all scaffolded by Genie Code."
 
 ---

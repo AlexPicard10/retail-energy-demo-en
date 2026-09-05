@@ -27,13 +27,6 @@ flowchart LR
     CLASSIF --> DASH
     GOLD --> GENIE["Genie<br/>Natural language Q&A"]
     CLASSIF --> GENIE
-    GOLD --> TOOLS["UC function tools<br/>at_risk_customers · revenue_at_risk<br/>customer_360 · profile_summary"]
-    CLASSIF --> TOOLS
-    FM["Foundation Model"] --> GW["Mosaic AI Gateway<br/>energy_retail_demo_llm<br/>usage + payload log + guardrails"]
-    TOOLS --> AGENT["Genie Code<br/>ResponsesAgent + UC tools"]
-    GW --> AGENT
-    AGENT --> SERVE["agents.deploy()<br/>Model Serving endpoint"]
-    SERVE --> APP["Databricks App<br/>AppKit chat UI"]
 ```
 
 Visual Data Prep builds the medallion live on a canvas. Genie Code then takes over for the generative work: training the model, scaffolding the declarative pipeline that applies it, and authoring the dashboard from an image.
@@ -102,9 +95,6 @@ The full script lives in **[01_Scenario/ENERGY_RETAIL_DEMO_GUIDE_EN.md](01_Scena
 | 6 | Analytics | 5 min | **Genie** | **Image → dashboard** in 30 seconds (AI/BI from a hand-drawn mockup) |
 | 7 | Analytics | 5 min | **Genie** | Q&A leading with the Peak Heavy at-risk retention list |
 | 8 | Analytics | 3 min | **Genie** | *(Optional)* Enrich the dashboard with the 3 ML profiles |
-| 9 | Agents & Apps | 4 min | **Serving UI** | *(Bonus)* Create an AI Gateway **model service** (usage, payload log, rate limit, guardrails) |
-| 10 | Agents & Apps | 5 min | **Genie Code** | *(Bonus)* Custom **ResponsesAgent** with UC-function tools → `agents.deploy()` |
-| 11 | Agents & Apps | 3 min | **Genie Code** | *(Bonus)* Ship it as a **Databricks App** chat UI (AppKit + `useServingStream`) |
 
 Visual aids live in [03_Visuels/](03_Visuels/) — keep `Retails_Energy_Dashboard.png` handy as the input mockup for prompt 6.
 
@@ -112,7 +102,7 @@ Visual aids live in [03_Visuels/](03_Visuels/) — keep `Retails_Energy_Dashboar
 
 ## Optional — run the presentation web-app
 
-A standalone React/Vite slide deck companion designed to run on your laptop next to the live workspace. It walks an audience through the architecture, the 10 steps (with copy buttons), the 3 customer profiles (animated K-Means reveal), and a Genie chat preview.
+A standalone React/Vite slide deck companion designed to run on your laptop next to the live workspace. It walks an audience through the architecture, the 7 steps (with copy buttons), the 3 customer profiles (animated K-Means reveal), and a Genie chat preview.
 
 ```bash
 cd web-app

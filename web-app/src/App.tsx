@@ -21,7 +21,7 @@ const SLIDES: Slide[] = [
   { id: 'devkit', label: 'AI Dev Kit', Component: AIDevKit },
   { id: 'brief', label: 'The brief', Component: DataAndOutcome },
   { id: 'scenario', label: 'Architecture', Component: DemoScenario },
-  { id: 'prompts', label: '10 Prompts', Component: DemoSteps },
+  { id: 'prompts', label: '7 Prompts', Component: DemoSteps },
   { id: 'profiles', label: 'Profiles', Component: CustomerProfiles },
   { id: 'roadmap', label: 'Roadmap', Component: Roadmap },
   { id: 'cta', label: 'Get started', Component: CTA },
