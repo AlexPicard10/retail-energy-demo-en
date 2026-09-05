@@ -183,7 +183,7 @@ function FloatingBadges() {
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       >
         <div className="rounded-full border border-engie-magenta/30 bg-white px-3 py-1.5 shadow-md">
-          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-engie-magenta">7 steps · 2 hands-on</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-engie-magenta">10 steps · 2 hands-on</span>
         </div>
       </motion.div>
       <motion.div

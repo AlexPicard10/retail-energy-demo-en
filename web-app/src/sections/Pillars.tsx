@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
-import { Database, Brain, BarChart3, Sparkles, Check, MousePointer2, type LucideIcon } from 'lucide-react'
+import { Database, Brain, BarChart3, Bot, Sparkles, Check, MousePointer2, type LucideIcon } from 'lucide-react'
 import SectionHeader from '../components/SectionHeader'
 
-type PillarKey = 'de' | 'ds' | 'analytics'
+type PillarKey = 'de' | 'ds' | 'analytics' | 'agents'
 
 type Tool = 'visual-data-prep' | 'genie-code'
 
@@ -80,6 +80,25 @@ const pillars: Pillar[] = [
     ],
     features: ['AI/BI Dashboards', 'Lakeview associativity', 'Genie Spaces'],
   },
+  {
+    key: 'agents',
+    badge: 'Agents & Apps',
+    title: 'Governed agent, shipped as a chat app',
+    tagline: 'A tool-using agent behind an AI Gateway, deployed as a Databricks App.',
+    icon: Bot,
+    color: '#7C5CD6',
+    gradient: 'from-[#7C5CD6]/15 via-white to-white',
+    duration: '12 min · bonus',
+    tool: 'genie-code',
+    prompt:
+      'In the Serving UI · create an AI Gateway model service energy_retail_demo_llm routing to a Foundation Model — usage tracking, a payload-logging inference table, a rate limit and PII guardrails.\n\n"Build an MLflow ResponsesAgent whose LLM is that gateway endpoint, with UC-function tools over the 3 Gold tables (at_risk_customers, revenue_at_risk, customer_360, profile_summary). Register to UC and deploy with agents.deploy()."\n\n"Ship a Databricks App (AppKit + useServingStream) with a chat UI in front of the retention_agent endpoint."',
+    outcomes: [
+      'AI Gateway: every LLM call metered, payload-logged + PII-guardrailed',
+      'retention_agent in UC + a live serving endpoint',
+      'Databricks App: business users chat with the governed agent',
+    ],
+    features: ['Mosaic AI Gateway', 'ResponsesAgent · UC tools', 'Databricks Apps'],
+  },
 ]
 
 export default function Pillars() {
@@ -91,13 +110,13 @@ export default function Pillars() {
       <div className="container-pitch">
         <SectionHeader
           number="02"
-          kicker="Three pillars · 45 minutes"
+          kicker="Four pillars · 45-min core + agent bonus"
           title={
             <>
-              One workshop, <span className="text-gradient">three production muscles.</span>
+              One workshop, <span className="text-gradient">four production muscles.</span>
             </>
           }
-          subtitle="Visual Data Prep handles the data engineering pillar; Genie Code drives Data Science and Analytics. Each pillar lands a real artifact a Databricks customer can ship."
+          subtitle="Visual Data Prep handles data engineering; Genie Code drives Data Science, Analytics, and a governed agent shipped as an app. Each pillar lands a real artifact a Databricks customer can ship."
         />
 
         <div className="card-strong overflow-hidden p-5 md:p-7">

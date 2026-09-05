@@ -6,7 +6,7 @@ const links = [
   { id: 'devkit', label: 'AI Dev Kit' },
   { id: 'brief', label: 'The brief' },
   { id: 'scenario', label: 'Architecture' },
-  { id: 'prompts', label: '7 Prompts' },
+  { id: 'prompts', label: '10 Prompts' },
   { id: 'profiles', label: 'Customer Profiles' },
   { id: 'roadmap', label: 'Roadmap' },
 ]
