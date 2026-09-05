@@ -46,7 +46,7 @@ web-app/
 │   │   ├── AIDevKit.tsx             ← Skills/Tools/MCP/Builder + copyable install command
 │   │   ├── DataAndOutcome.tsx       ← The brief: 5 source files in → at-risk call list out
 │   │   ├── DemoScenario.tsx         ← Architecture: animated medallion + ML flow
-│   │   ├── DemoSteps.tsx            ← Interactive 7-step walkthrough (canvas + prompts, copy buttons)
+│   │   ├── DemoSteps.tsx            ← Interactive 7-step walkthrough (canvas + prompts, copy buttons; Catalog + Schema inputs fill the prompts)
 │   │   ├── Pillars.tsx              ← DE / DS / Analytics tabs + sample prompts
 │   │   ├── CustomerProfiles.tsx     ← 3 K-Means clusters + live cluster reveal
 │   │   ├── Roadmap.tsx              ← 4 upcoming Genie Code features

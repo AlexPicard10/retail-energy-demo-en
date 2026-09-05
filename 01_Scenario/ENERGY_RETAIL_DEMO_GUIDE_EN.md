@@ -1,9 +1,9 @@
 # B2C Energy Demo Guide — Visual Data Prep + Genie Code Workshop
 
 > **Catalog**: `<YOUR_CATALOG>` (replace with your Unity Catalog)
-> **Schema**: `energy_retail_demo`
-> **Volume**: `/Volumes/<YOUR_CATALOG>/energy_retail_demo/raw_data/`
-> **Setup**: see `02_Setup/energy_retail_demo_setup.py`
+> **Schema**: `<YOUR_SCHEMA>` (the schema you created; default `energy_retail_demo`)
+> **Volume**: `/Volumes/<YOUR_CATALOG>/<YOUR_SCHEMA>/raw_data/`
+> **Setup**: run `02_Setup/energy_retail_demo_setup.py --profile <P> --catalog <YOUR_CATALOG> --schema <YOUR_SCHEMA>` first (see the repo README for prerequisites)
 
 This guide is the presenter script. It mirrors the 7 steps in the web-app deck (`web-app/`) one-for-one — drive the two canvas steps live in Visual Data Prep, and copy each Genie Code / Genie prompt in order.
 
@@ -42,12 +42,12 @@ This guide is the presenter script. It mirrors the 7 steps in the web-app deck (
 
 ## Pillar 1 — Data Engineering with Visual Data Prep
 
-> Two steps on the canvas. Step 2 is one natural-language prompt; Step 3 is a short manual flow with the AI operator. Each step publishes into `<YOUR_CATALOG>.energy_retail_demo`.
+> Two steps on the canvas. Step 2 is one natural-language prompt; Step 3 is a short manual flow with the AI operator. Each step publishes into `<YOUR_CATALOG>.<YOUR_SCHEMA>`.
 
 ### Step 1 — Add the source files to the canvas
 
 1. Open **Visual Data Prep** and create a new flow named `energy_retail_visual_prep`.
-2. For each raw file in `/Volumes/<YOUR_CATALOG>/energy_retail_demo/raw_data/`, drop a **Source** node: `raw_customers.csv`, `raw_consumption.csv`, `raw_billing.csv`, `raw_tariff_plans.csv`, `raw_customer_interactions.json`.
+2. For each raw file in `/Volumes/<YOUR_CATALOG>/<YOUR_SCHEMA>/raw_data/`, drop a **Source** node: `raw_customers.csv`, `raw_consumption.csv`, `raw_billing.csv`, `raw_tariff_plans.csv`, `raw_customer_interactions.json`.
 3. Let schema inference run and preview a few rows on each Source so the team sees the data — including the nested JSON of the interactions file.
 
 Talking points:
@@ -80,7 +80,7 @@ Build it as a readable Visual Data Prep flow using native operators rather than 
 
 Before publishing, double-check that the table has every customer in it and that nobody ends up with a zero average daily kWh — if some do, a join or filter is dropping their consumption rows.
 
-Publish to `<YOUR_CATALOG>.energy_retail_demo.gold_customer_energy_profile`. That's the only output of this flow.
+Publish to `<YOUR_CATALOG>.<YOUR_SCHEMA>.gold_customer_energy_profile`. That's the only output of this flow.
 ```
 
 Talking points:
@@ -121,7 +121,7 @@ The interactions file has 30,000 short SMS-style messages. Classifying every row
      The topic column must be the plain text label only — e.g. "billing dispute".
    ```
 
-4. End with an **Output** node — write one row per customer to `<YOUR_CATALOG>.energy_retail_demo.gold_customer_topics`.
+4. End with an **Output** node — write one row per customer to `<YOUR_CATALOG>.<YOUR_SCHEMA>.gold_customer_topics`.
 
 Talking points:
 - The **Unique** operator is a first-class dedup node — no Aggregate/Group-By workaround needed. Set the key to `raw_message` and it keeps one row per distinct message.
@@ -140,7 +140,7 @@ Create a new notebook for this step (separate from any previous work — keep th
 Train a K-Means consumption classifier with k=3 to group our customers into 3 distinct consumption profiles.
 
 Training source:
-`<YOUR_CATALOG>.energy_retail_demo.gold_customer_energy_profile`
+`<YOUR_CATALOG>.<YOUR_SCHEMA>.gold_customer_energy_profile`
 
 It also carries tariff and topic columns — ignore those, they're for the analysis layer. Cluster only on these 6 consumption features:
   • avg_daily_kwh
@@ -168,7 +168,7 @@ After fitting, inspect the cluster centers (in real units, not z-scores) and ass
 
 Document the final cluster_id → label mapping in the model description (the pipeline scoring step in the next prompt depends on it).
 
-Register the pipeline in Unity Catalog as `<YOUR_CATALOG>.energy_retail_demo.consumption_classifier` (v1).
+Register the pipeline in Unity Catalog as `<YOUR_CATALOG>.<YOUR_SCHEMA>.consumption_classifier` (v1).
 ```
 
 - Training is a standalone notebook — pipelines are for ETL and materialized views, not one-shot model training. Inference (next prompt) is what lands in a declarative pipeline.
@@ -184,7 +184,7 @@ Register the pipeline in Unity Catalog as `<YOUR_CATALOG>.energy_retail_demo.con
 Build a Lakeflow Declarative Pipeline named `energy_retail_classification_pipeline` that scores every retail customer with the pre-trained K-Means consumption classifier.
 
 Input table — read directly from Unity Catalog:
-`<YOUR_CATALOG>.energy_retail_demo.gold_customer_energy_profile`
+`<YOUR_CATALOG>.<YOUR_SCHEMA>.gold_customer_energy_profile`
 
 It has one row per customer with these columns:
   • customer_id
@@ -197,10 +197,10 @@ Apply 3 sanity checks on the input view via `dp.expect_or_drop`:
   • payment_reliability_pct BETWEEN 0 AND 100
 
 Pre-trained model (already registered in Unity Catalog):
-`<YOUR_CATALOG>.energy_retail_demo.consumption_classifier`
+`<YOUR_CATALOG>.<YOUR_SCHEMA>.consumption_classifier`
 Load it with the appropriate MLflow loader for Unity Catalog models. It returns an integer cluster_id (0..2) for each row.
 
-Create a materialized view `<YOUR_CATALOG>.energy_retail_demo.gold_customer_classifications` with one row per customer:
+Create a materialized view `<YOUR_CATALOG>.<YOUR_SCHEMA>.gold_customer_classifications` with one row per customer:
   • customer_id (from input)
   • cluster_id (int, raw model output)
   • consumption_profile (string) — map cluster_id to one of the 3 business labels assigned during training. The exact cluster_id order is documented in the consumption_classifier model description (typical mapping on this data, adjust if your training assigned a different order):
@@ -238,7 +238,7 @@ Suggested mockup contents:
 ```text
 Build me this AI/BI Dashboard from the attached hand-drawn mockup — match the layout, KPI tiles, charts and drill-down shown in the image.
 
-Data sources — join these 3 Gold tables in `<YOUR_CATALOG>.energy_retail_demo`:
+Data sources — join these 3 Gold tables in `<YOUR_CATALOG>.<YOUR_SCHEMA>`:
   • gold_customer_energy_profile — consumption habits + tariff context
   • gold_customer_classifications — named consumption profile per customer
   • gold_customer_topics — dominant complaint topic per customer

@@ -74,7 +74,7 @@ export default function CTA() {
             </div>
 
             <div className="mt-10 grid gap-4 border-t border-white/10 pt-8 md:grid-cols-3">
-              <Quick step="1" title="Generate data" body="python3 02_Setup/energy_retail_demo_setup.py" />
+              <Quick step="1" title="Generate data" body="python3 02_Setup/energy_retail_demo_setup.py --catalog <YOUR_CATALOG> --schema <YOUR_SCHEMA>" />
               <Quick step="2" title="Install skills" body="curl … install_skills.sh | bash --install-to-genie" />
               <Quick step="3" title="Follow the guide" body="01_Scenario/ENERGY_RETAIL_DEMO_GUIDE_EN.md" />
             </div>

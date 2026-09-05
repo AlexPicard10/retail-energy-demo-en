@@ -71,7 +71,7 @@ const steps: Step[] = [
     flow: ['Source'],
     instructions: [
       'Open Visual Data Prep and create a new flow named `energy_retail_visual_prep`.',
-      'For each raw file in `/Volumes/<YOUR_CATALOG>/energy_retail_demo/raw_data/`, drop a **Source** node: `raw_customers.csv`, `raw_consumption.csv`, `raw_billing.csv`, `raw_tariff_plans.csv`, `raw_customer_interactions.json`.',
+      'For each raw file in `/Volumes/<YOUR_CATALOG>/<YOUR_SCHEMA>/raw_data/`, drop a **Source** node: `raw_customers.csv`, `raw_consumption.csv`, `raw_billing.csv`, `raw_tariff_plans.csv`, `raw_customer_interactions.json`.',
       'Let schema inference run and preview a few rows on each Source so the team sees the data — including the nested JSON of the interactions file.',
     ],
     databricks: ['Visual Data Prep canvas', 'Source node on UC Volumes', 'Schema inference + preview'],
@@ -121,7 +121,7 @@ Before publishing, double-check that the table has every customer
 in it and that nobody ends up with a zero average daily kWh — if
 some do, a join or filter is dropping their consumption rows.
 
-Publish to \`<YOUR_CATALOG>.energy_retail_demo.gold_customer_energy_profile\`.
+Publish to \`<YOUR_CATALOG>.<YOUR_SCHEMA>.gold_customer_energy_profile\`.
 That's the only output of this flow.`,
     databricks: ['Visual Data Prep · natural-language build', 'Auto-generated Source → Filter → Join → Aggregate nodes', 'One Output to UC as managed Delta'],
     assets: [
@@ -164,7 +164,7 @@ Important
   "billing dispute".`,
         copyLabel: 'NL prompt · join topics back to customers',
       },
-      'End with an **Output** node — write one row per customer to `<YOUR_CATALOG>.energy_retail_demo.gold_customer_topics`.',
+      'End with an **Output** node — write one row per customer to `<YOUR_CATALOG>.<YOUR_SCHEMA>.gold_customer_topics`.',
     ],
     databricks: ['Visual Data Prep · Unique + AI operators', '`ai_classify` on the built-in Mosaic AI endpoint', 'Unique + join-back optimization (~350× fewer LLM calls)'],
     assets: [
@@ -187,7 +187,7 @@ Train a K-Means consumption classifier with k=3 to group our customers
 into 3 distinct consumption profiles.
 
 Training source:
-\`<YOUR_CATALOG>.energy_retail_demo.gold_customer_energy_profile\`
+\`<YOUR_CATALOG>.<YOUR_SCHEMA>.gold_customer_energy_profile\`
 
 It also carries tariff and topic columns — ignore those, they're for
 the analysis layer. Cluster only on these 6 consumption features:
@@ -225,7 +225,7 @@ Document the final cluster_id → label mapping in the model description
 (the DLT scoring step in the next prompt depends on it).
 
 Register the pipeline in Unity Catalog as
-\`<YOUR_CATALOG>.energy_retail_demo.consumption_classifier\` (v1).`,
+\`<YOUR_CATALOG>.<YOUR_SCHEMA>.consumption_classifier\` (v1).`,
     databricks: ['MLflow Tracking + Model Registry', 'Unity Catalog model governance', 'Scikit-learn KMeans on the driver'],
     assets: [
       'MLflow run with silhouette + inertia + 3 figures (centroid heatmap, per-feature boxplots, 2D PCA)',
@@ -246,7 +246,7 @@ Register the pipeline in Unity Catalog as
 customer with the pre-trained K-Means consumption classifier.
 
 Input table — read directly from Unity Catalog:
-\`<YOUR_CATALOG>.energy_retail_demo.gold_customer_energy_profile\`
+\`<YOUR_CATALOG>.<YOUR_SCHEMA>.gold_customer_energy_profile\`
 
 It has one row per customer with these columns:
   • customer_id
@@ -263,12 +263,12 @@ Apply 3 sanity checks on the input view via \`@dp.expect_or_drop\`:
   • payment_reliability_pct BETWEEN 0 AND 100
 
 Pre-trained model (already registered in Unity Catalog):
-\`<YOUR_CATALOG>.energy_retail_demo.consumption_classifier\`
+\`<YOUR_CATALOG>.<YOUR_SCHEMA>.consumption_classifier\`
 Load it with the appropriate MLflow loader for Unity Catalog models.
 It returns an integer cluster_id (0..2) for each row.
 
 Create a materialized view
-\`<YOUR_CATALOG>.energy_retail_demo.gold_customer_classifications\`
+\`<YOUR_CATALOG>.<YOUR_SCHEMA>.gold_customer_classifications\`
 with one row per customer:
   • customer_id (from input)
   • cluster_id (int, raw model output)
@@ -301,7 +301,7 @@ mockup — match the layout, KPI tiles, charts and drill-down shown
 in the image.
 
 Data sources — join these 3 Gold tables in
-\`<YOUR_CATALOG>.energy_retail_demo\`:
+\`<YOUR_CATALOG>.<YOUR_SCHEMA>\`:
   • gold_customer_energy_profile — consumption habits + tariff context
   • gold_customer_classifications — named consumption profile per customer
   • gold_customer_topics — dominant complaint topic per customer
@@ -349,9 +349,13 @@ export default function DemoSteps() {
   const [active, setActive] = useState(0)
   const [copied, setCopied] = useState(false)
   const [catalog, setCatalog] = useState('')
+  const [schema, setSchema] = useState('')
   const step = steps[active]
   const g = groups[step.group]
-  const substitute = (s: string) => s.replace(/<YOUR_CATALOG>/g, catalog || '<YOUR_CATALOG>')
+  const substitute = (s: string) =>
+    s
+      .replace(/<YOUR_CATALOG>/g, catalog || '<YOUR_CATALOG>')
+      .replace(/<YOUR_SCHEMA>/g, schema || 'energy_retail_demo')
   const promptText = step.prompt ? substitute(step.prompt) : ''
 
   const copyPrompt = async () => {
@@ -389,7 +393,20 @@ export default function DemoSteps() {
                   onChange={(e) => setCatalog(e.target.value)}
                   placeholder="your_catalog"
                   spellCheck={false}
-                  className="w-64 bg-transparent font-mono text-[12px] text-engie-navy outline-none placeholder:text-engie-navy/30"
+                  className="w-44 bg-transparent font-mono text-[12px] text-engie-navy outline-none placeholder:text-engie-navy/30"
+                />
+              </label>
+              <label className="flex items-center gap-2 rounded-full border border-engie-blue/30 bg-engie-blue/5 px-3 py-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-engie-deep">
+                  Schema
+                </span>
+                <input
+                  type="text"
+                  value={schema}
+                  onChange={(e) => setSchema(e.target.value)}
+                  placeholder="energy_retail_demo"
+                  spellCheck={false}
+                  className="w-52 bg-transparent font-mono text-[12px] text-engie-navy outline-none placeholder:text-engie-navy/30"
                 />
               </label>
               <div className="flex items-center gap-2">

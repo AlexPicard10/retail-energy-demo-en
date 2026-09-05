@@ -7,12 +7,15 @@ it to a Databricks UC volume for a Genie Code workshop covering Data Engineering
 Data Science (customer consumption classification), and Analytics.
 
 Usage:
-    python3 energy_retail_demo_setup.py --profile <PROFILE> --catalog <CATALOG>
-    python3 energy_retail_demo_setup.py --profile <PROFILE> --catalog <CATALOG> --check
-    python3 energy_retail_demo_setup.py --profile <PROFILE> --catalog <CATALOG> --teardown
+    python3 energy_retail_demo_setup.py --profile <PROFILE> --catalog <CATALOG> --schema <SCHEMA>
+    python3 energy_retail_demo_setup.py --profile <PROFILE> --catalog <CATALOG> --schema <SCHEMA> --check
+    python3 energy_retail_demo_setup.py --profile <PROFILE> --catalog <CATALOG> --schema <SCHEMA> --teardown
+
+    --schema is optional (default: energy_retail_demo). In a hands-on lab each
+    attendee passes their own schema so everyone stays isolated in one catalog.
 
 Prerequisites:
-    pip install polars mimesis numpy databricks-sdk
+    pip install -r requirements.txt      # polars, mimesis, numpy, databricks-sdk
 """
 
 import argparse
@@ -1360,6 +1363,10 @@ def teardown(w, catalog, full=False):
 # ---------------------------------------------------------------------------
 
 def main():
+    # Rebound below to the --schema value; declared here because every helper
+    # reads this module-level name (and argparse's default reads it too).
+    global SCHEMA
+
     parser = argparse.ArgumentParser(
         description="Energy Retail Demo — Setup Script",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -1374,6 +1381,12 @@ def main():
         help="Unity Catalog name (e.g., my_catalog)",
     )
     parser.add_argument(
+        "--schema", "-s",
+        default=SCHEMA,
+        help=f"UC schema to create (default: {SCHEMA}). In a hands-on lab, each "
+             "attendee uses their own schema to stay isolated.",
+    )
+    parser.add_argument(
         "--check", action="store_true",
         help="Verification only — do not create any resources or generate data",
     )
@@ -1386,6 +1399,10 @@ def main():
         help="With --teardown: also wipe raw files in the volume for a true reinit",
     )
     args = parser.parse_args()
+
+    # Rebind the module-level SCHEMA to the chosen schema so a hands-on attendee
+    # can run the whole flow (create / check / teardown) in their own schema.
+    SCHEMA = args.schema
 
     print(f"\n{Colors.BOLD}\u2554{'=' * 48}\u2557{Colors.RESET}")
     print(f"{Colors.BOLD}\u2551   Energy Retail Demo \u2014 Setup                    \u2551{Colors.RESET}")

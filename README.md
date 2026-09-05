@@ -40,11 +40,11 @@ Visual Data Prep builds the medallion live on a canvas. Genie Code then takes ov
 | **Databricks workspace** | Unity Catalog enabled, **serverless compute** available (DBR + SQL warehouses) |
 | **Catalog rights** | `CREATE SCHEMA`, `CREATE VOLUME`, `CREATE TABLE`, `CREATE MODEL` on a target catalog |
 | **Databricks CLI** | Installed and a profile configured in `~/.databrickscfg` |
-| **Python 3.10+** | With `polars`, `mimesis`, `numpy`, `databricks-sdk` |
+| **Python 3.10+** | With `polars`, `mimesis`, `numpy`, `databricks-sdk` — install via `requirements.txt` |
 | **Node 18+** | Only if you want to run the optional presentation web-app |
 
 ```bash
-pip install polars mimesis numpy databricks-sdk
+pip install -r requirements.txt
 ```
 
 ---
@@ -59,14 +59,15 @@ cd retail-energy-genie-code-demo
 # 2. Generate synthetic data and upload to your workspace
 python3 02_Setup/energy_retail_demo_setup.py \
     --profile <YOUR_PROFILE> \
-    --catalog <YOUR_CATALOG>
+    --catalog <YOUR_CATALOG> \
+    --schema <YOUR_SCHEMA>
 
 # 3. Open Databricks and start with Visual Data Prep (Pillar 1),
 #    then switch to Genie Code from Pillar 2 onward.
 #    Full script: 01_Scenario/ENERGY_RETAIL_DEMO_GUIDE_EN.md
 ```
 
-Replace `<YOUR_PROFILE>` with a CLI profile name (e.g. `my-workspace`) and `<YOUR_CATALOG>` with the Unity Catalog you have rights on (e.g. `main`, `dev_sandbox`). The script creates a schema `energy_retail_demo`, a UC volume `raw_data`, and uploads:
+Replace `<YOUR_PROFILE>` with a CLI profile name (e.g. `my-workspace`), `<YOUR_CATALOG>` with the Unity Catalog you have rights on (e.g. `main`, `dev_sandbox`), and `<YOUR_SCHEMA>` with the schema to create. `--schema` is optional (default `energy_retail_demo`) — **in a hands-on lab, each attendee passes their own schema so everyone stays isolated in a shared catalog.** The script creates that schema, a UC volume `raw_data`, and uploads:
 
 - `raw_customers.csv` — 10,000 customers with anomaly flags, churn-risk score, EV / solar / household-size enrichment
 - `raw_consumption.csv` — ~3.65M smart-meter readings (one daily reading per customer for a full year), with realistic spike / flatline anomalies on ~5% of customers
@@ -125,6 +126,7 @@ After the demo, clear the derived artifacts (the classification pipeline, dashbo
 python3 02_Setup/energy_retail_demo_setup.py \
     --profile <YOUR_PROFILE> \
     --catalog <YOUR_CATALOG> \
+    --schema <YOUR_SCHEMA> \
     --teardown
 ```
 

@@ -1,0 +1,7 @@
+# Prerequisites for the Retail Energy demo setup script
+# (02_Setup/energy_retail_demo_setup.py). Python 3.10+.
+#   pip install -r requirements.txt
+polars>=1.40
+mimesis>=11
+numpy>=2.0
+databricks-sdk>=0.105
